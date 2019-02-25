@@ -192,7 +192,6 @@ plt.scatter(ppx, ppy, color='r', marker='o', s=50)
 plt.show(block=False)
 
 
-
 #------------------------------ Solar parameters -------------------------------
 lat = np.deg2rad(LATITUDE)
 lon = np.deg2rad(LONGITUDE)
@@ -281,15 +280,15 @@ class Heliostat(object):
         self.dR  = 0.0          # distance to receiver [m]
 
         # angles
-        self.slope_angle        = 0.0
-        self.azimuth_angle      = 0.0
-        self.theta              = 0.0
+        self.slope_angle    = 0.0
+        self.azimuth_angle  = 0.0
+        self.theta          = 0.0
 
         # loss factors
-        self.cosine_eff         = 1.0
-        self.f_shadow_block     = 0.0
-        self.f_att              = 0.0
-        self.f_spill            = 0.0
+        self.cosine_eff     = 1.0
+        self.f_shadow_block = 0.0
+        self.f_att          = 0.0
+        self.f_spill        = 0.0
 
         # total energy contributed to the receiver
         self.total_contribution = 0.0   # (total W_th to receiver)
@@ -323,9 +322,18 @@ class Heliostat(object):
         self.f_shadow_block = 0.05
 
     def determine_attenuation(self):
+        """
+        Use one of two approaches:
+            (1) Visibility distance [km]
+            (2) Loss coefficients (ex: [%/km])
+        """
+        # (1)
+        #--------------- Visibility Approach ---------------
         # attenuation due to visibility in atmosphere
         # self.f_att = 1.0 - np.exp(-(3*self.dR) / NOM_VISIBILITY)
 
+        # (2)
+        #----------- Loss Coefficiencts Approach -----------
         # visibility loss coefficients
         a0 = 0.679 / 100  #[-]
         a1 = 10.46 / 100  #[-/km]
@@ -355,9 +363,6 @@ class Heliostat(object):
         # calculate f_spill
         if AI > AR:
             self.f_spill = 1.0 - (AR/AI)
-            # print("SPILLAGE!!!")
-            # print("    AI: {: 04.3f}".format(AI))
-            # print("    AR: {: 04.3f}".format(AR))
         else:
             self.f_spill = 0.0
 
@@ -425,7 +430,7 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
     :param: theta   [float] Starting angle [rad]
 
     return: heliostat_row [list]  List of heliostat objects
-            theta_0       [float] Angle between adjacent heliostats [rad]float] 
+            theta_0       [float] Angle between adjacent heliostats [rad]
             d_theta       [float] Starting angle [rad]
     """
     global net_power_thermal
@@ -446,19 +451,21 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
     rows += 1
     row_contribution = 0
     while theta < 2*pi:
+        # generate coordinate
         x_coord = radius * cos(theta)
         y_coord = radius * sin(theta)
         z_coord = 0.0
         coordinate = np.array((x_coord, y_coord, z_coord))
 
+        # instantiate heliostat, and add its contribution
         h = Heliostat(coordinate)
         heliostat_row.append(h)
         solar_field.append(h)
         theta += d_theta
         net_power_thermal += h.total_contribution
-        row_contribution += h.total_contribution
+        row_contribution  += h.total_contribution
 
-    # message to inform
+    # message to inform contribution of row
     net_thermal_MW = net_power_thermal / 1000000
     row_contribution_MW = row_contribution / 1000000
     percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
@@ -479,7 +486,7 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
     :param: row_margin [float] Space between rows [m]
     :param: margin_min [float] Min distance between heliostats in same row [m]
     :param: margin_max [float] Max distance between heliostats in same row [m]
-    :param: oversize   [float] Factor to oversize field by, before trimming
+    :param: oversize   [float] Factor to oversize field by, before trimming [-]
 
     return heliostat_rows_list [list] List of rows
     """
@@ -529,6 +536,8 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
             theta_0 = d_theta / 2
         else:
             theta_0 = 0
+
+        # add row, and increase radius for the next row
         heliostat_rows_list.append(heliostat_row)
         r += row_margin
 
@@ -552,8 +561,9 @@ print()
 #-------------------------------------------------------------------------------
 # trim away the least efficient heliostats
 if OVERSIZE_FACTOR > 1:
+    print("......................................")
     print("Oversize factor = {}".format(OVERSIZE_FACTOR))
-    print("Trimming least efficient heliostats...")
+    print("Trimming least effective heliostats...")
 
     # sort list of heliostats (most to least contribution)
     solar_field.sort(key=lambda x: x.total_contribution, reverse=True)
