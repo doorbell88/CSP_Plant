@@ -79,7 +79,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 200                 #[MW]
+NET_POWER_MW            = 20                 #[MW]
 NET_POWER_KW            = NET_POWER_MW * 1000 #[kW]
 NET_POWER_W             = NET_POWER_KW * 1000 #[W]
 
@@ -234,7 +234,7 @@ print("    elevation:    {: 04.2f} deg".format(np.degrees(elevation)))
 print()
 
 
-#-------------------------------------------------------------------------------
+#===============================================================================
 class Heliostat(object):
     """
     |-------| Tower height                                      
@@ -412,23 +412,33 @@ class Heliostat(object):
         return self.total_contribution
             
 
-# def place_row_of_heliostats(radius, theta_0=0, margin=10.0):
+#===============================================================================
 def place_row_of_heliostats(radius, d_theta, theta_0=0):
     """
     Places a single circle of heliostats, evenly distributed around the circle
-    :param: radius [float] Radius to plot heliostats [m]
-    :param: margin [float] Space between heliostats [m]
+
+    :param: radius  [float] Radius to plot heliostats [m]
+    :param: d_theta [float] Angle between adjacent heliostats [rad]
+    :param: theta   [float] Starting angle [rad]
+
+    return: heliostat_row [list]  List of heliostat objects
+            theta_0       [float] Angle between adjacent heliostats [rad]float] 
+            d_theta       [float] Starting angle [rad]
     """
     global net_power_thermal
     global solar_field
     global rows
 
+    # number of heliostats
+    number = int((2*pi) / d_theta)
+
+    # message to inform
     print()
-    print("Placing row: {:>2},  Radius: {:.1f} m".format(rows, radius))
+    print("Placing row: {:>2}, Radius: {:.1f} m, {} heliostats".format(
+        rows, radius, number))
 
     # generate list of coordinates, and instantiate heliostats
     theta = theta_0
-    coordinate_list = []
     heliostat_row = []
     rows += 1
     row_contribution = 0
@@ -437,7 +447,6 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
         y_coord = radius * sin(theta)
         z_coord = 0.0
         coordinate = np.array((x_coord, y_coord, z_coord))
-        coordinate_list.append(coordinate)
 
         h = Heliostat(coordinate)
         heliostat_row.append(h)
@@ -445,11 +454,6 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
         theta += d_theta
         net_power_thermal += h.total_contribution
         row_contribution += h.total_contribution
-
-        # # plot heliostat
-        # ppx, ppy, ppz = zip(coordinate)
-        # plt.scatter(ppx, ppy, color='c', marker='s', s=5)
-        # plt.show(block=False)
 
     # message to inform
     net_thermal_MW = net_power_thermal / 1000000
@@ -461,14 +465,19 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
             
     return heliostat_row, theta_0, d_theta
 
-def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None,
-    margin_min=None, margin_max=None):
+def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
+    margin_min=None, margin_max=None, oversize=1.0):
     """
     Places successive rows of heliostats, with a defined row_margin of spacing
-    between each row
+    between each row.
+
     :param: r_min      [float] Inner heliostat radius from tower (to start) [m]
-    :param: r_max      [float] Outer heliostat radius from tower (to stop) [m]
     :param: row_margin [float] Space between rows [m]
+    :param: margin_min [float] Min distance between heliostats in same row [m]
+    :param: margin_max [float] Max distance between heliostats in same row [m]
+    :param: oversize   [float] Factor to oversize field by, before trimming
+
+    return heliostat_rows_list [list] List of rows
     """
     global net_power_thermal
 
@@ -476,6 +485,7 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None,
     theta_0 = 0
     d_theta = 0
 
+    # default values
     if row_margin is None:
         row_margin = Heliostat.depth
     if margin_min is None:
@@ -483,62 +493,40 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None,
     if margin_max is None:
         margin_max = Heliostat.width * 3
 
+    # oversize, so that least efficient heliostats can be removed afterwards
+    OVERSIZE_POWER_TH_W = NET_POWER_TH_W * oversize
+    
     # calculate starting parameters
     r = r_min
     margin = margin_min
     d_s = Heliostat.width + margin
     d_theta = arcsin(d_s/r)
-    number = np.floor((2*pi) / d_theta)
+    number = int((2*pi) / d_theta)
     d_theta = (2*pi) / number 
 
     heliostat_rows_list = []
-    if r_max is not None:
-        while r < r_max:
-            # update the margin, to see if it's getting to high
-            margin = r * sin(d_theta)
-            if margin > margin_max:
-                # reset margin
-                margin = margin_min
-                d_s = Heliostat.width + margin
-                d_theta = arcsin(d_s/r)
-                # make d_theta so it is equal all the way around
-                number = np.floor((2*pi) / d_theta)
-                d_theta = (2*pi) / number 
+    while net_power_thermal < OVERSIZE_POWER_TH_W:
+        # update the margin, to see if it's getting to high
+        margin = r * sin(d_theta)
+        if margin > margin_max:
+            # reset margin
+            margin = margin_min
+            d_s = Heliostat.width + margin
+            d_theta = arcsin(d_s/r)
+            # make d_theta so it is equal all the way around
+            number = np.floor((2*pi) / d_theta)
+            d_theta = (2*pi) / number 
 
-            # place heliostat row
-            heliostat_row, theta_0, d_theta = \
-                place_row_of_heliostats(r, d_theta, theta_0=theta_0)
-            # stagger mirrors in the next row
-            if theta_0 == 0:
-                theta_0 = d_theta / 2
-            else:
-                theta_0 = 0
-            heliostat_rows_list.append(heliostat_row)
-            r += row_margin
-
-    else:
-        while net_power_thermal < NET_POWER_TH_W:
-            # update the margin, to see if it's getting to high
-            margin = r * sin(d_theta)
-            if margin > margin_max:
-                # reset margin
-                margin = margin_min
-                d_s = Heliostat.width + margin
-                d_theta = arcsin(d_s/r)
-                # make d_theta so it is equal all the way around
-                number = np.floor((2*pi) / d_theta)
-                d_theta = (2*pi) / number 
-
-            # place heliostat row
-            heliostat_row, theta_0, d_theta = \
-                place_row_of_heliostats(r, d_theta, theta_0=theta_0)
-            # stagger mirrors in the next row
-            if theta_0 == 0:
-                theta_0 = d_theta / 2
-            else:
-                theta_0 = 0
-            heliostat_rows_list.append(heliostat_row)
-            r += row_margin
+        # place heliostat row
+        heliostat_row, theta_0, d_theta = \
+            place_row_of_heliostats(r, d_theta, theta_0=theta_0)
+        # stagger mirrors in the next row
+        if theta_0 == 0:
+            theta_0 = d_theta / 2
+        else:
+            theta_0 = 0
+        heliostat_rows_list.append(heliostat_row)
+        r += row_margin
 
     return heliostat_rows_list
 
@@ -546,48 +534,57 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None,
 #-------------------------------------------------------------------------------
 # generate list of heliostats (coordinates)
 """
-Concentric circles of heliostats
+Concentric circles of heliostats, staggered in each successive row to minimize
+blocking
 """
-#..................
-# heliostat_row = place_row_of_heliostats(radius=INNER_RADIUS)
-
-#..................
+#-------------------------------------------------------------------------------
+OVERSIZE_FACTOR = 1.5
 print("Placing all heliostats...")
-place_layers_of_heliostats(r_max=800)#, row_margin=20.0)
-# place_layers_of_heliostats()
+place_layers_of_heliostats(oversize=OVERSIZE_FACTOR)
 
 print("--------> Done!")
 print("          Placed {} heliostats".format(len(solar_field)))
+print()
+
 
 #-------------------------------------------------------------------------------
 # trim away the least efficient heliostats
-solar_field.sort(
-    key=lambda x: x.total_contribution, reverse=False
-)
+if OVERSIZE_FACTOR > 1:
+    print("Oversize factor = {}".format(OVERSIZE_FACTOR))
+    print("Trimming least efficient heliostats...")
 
-top_fraction = 0.7
-top_number = int(len(solar_field) * top_fraction)
-solar_field_best = solar_field[top_number::]
+    # sort list of heliostats (most to least contribution)
+    solar_field.sort(key=lambda x: x.total_contribution, reverse=True)
+
+    # remove heliostats from list, and subtract their thermal energy contribution
+    while net_power_thermal > NET_POWER_TH_W:
+        h = solar_field[-1]
+        if net_power_thermal - h.total_contribution > NET_POWER_TH_W:
+            solar_field.remove(h)
+            net_power_thermal -= h.total_contribution
+        else:
+            break
 
 #..................
 # plot best heliostat position
-for h in solar_field_best:
+for h in solar_field:
     ppx, ppy, ppz = zip(list(h.position))
     plt.scatter(ppx, ppy, color='c', marker='s', s=5)
 
-#..................
-# h1 = Heliostat(np.array((1000,-1000,0)))
-# h1.calculate_energy_contribution(verbose=True)
-# 
-# number_of_heliostats = np.ceil(NET_POWER_W / h1.total_contribution)
-# print("Number of heliostats: {:,.0f}".format(number_of_heliostats))
+# calculate final values
+net_thermal_MW = net_power_thermal / 1000000
+percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
 
-# # plot heliostat position
-# ppx, ppy, ppz = zip(list(h1.position))
-# plt.scatter(ppx, ppy, color='c', marker='s', s=5)
+# print info
+print("--------> Done!")
+print("          Placed {} heliostats".format(len(solar_field)))
+print("----------------------------------------------------")
+print("--> NET POWER THERMAL: {:.1f} [MW]".format(net_thermal_MW), end=", ")
+print(" ({:.2f} %)".format(percent_of_goal))
+print("----------------------------------------------------")
+print()
 
-
-#..................
+#-------------------------------------------------------------------------------
 # show plot
 plt.show(block=False)
 
