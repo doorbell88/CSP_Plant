@@ -8,36 +8,36 @@ to achieve a desired net power output of the plant at a specified time.
 be set to any day of the year.)
 
 # ASSUMPTIONS
-NOMINAL CONDITIONS TO BE USED:
-    - solar noon on summer solstice     --> Day 255
+## NOMINAL CONDITIONS TO BE USED:
+    * solar noon on summer solstice     --> Day 255
                                         --> Hour 12:xx  *(correct for meridian)
-    - highest measured I_b of the year  --> 1089 [W/m2]
-    - highest temp of the year          --> 294.55 [K]
-    - highest pressure of the year      --> 76.98 [kPa]
-    - visibility (atmosphere)           --> 15 km
+    * highest measured I_b of the year  --> 1089 [W/m2]
+    * highest temp of the year          --> 294.55 [K]
+    * highest pressure of the year      --> 76.98 [kPa]
+    * visibility (atmosphere)           --> 15 km
 
-GEOMETRY
-    - topography assumed perfectly flat
-    - curvature of Earth is neglected in terms of altitude (z-axis) change
+## GEOMETRY
+    * topography assumed perfectly flat
+    * curvature of Earth is neglected in terms of altitude (z-axis) change
         --> only about 0.2m difference
             40000*(1-sin(arccos(4/40000))) = 0.00019km (0.19m)
-    - maintenance roads are not accounted for
+    * maintenance roads are not accounted for
 
-HELIOSTATS
-    - mirror area / total area = 0.96
-    - mirror clean factor = 0.95
-    - shadowing & blocking --> assumed to be 5%
-    - mirrors are flat
+## HELIOSTATS
+    * mirror area / total area = 0.96
+    * mirror clean factor = 0.95
+    * shadowing & blocking --> assumed to be 5%
+    * mirrors are flat
 
-RECEIVER
-    - Optical height is center of receiver height
-    - receiver is cylindrical       --> Diameter = 10 [m]
+## RECEIVER
+    * Optical height is center of receiver height
+    * receiver is cylindrical       --> Diameter = 10 [m]
                                     --> Length   = 15 [m] (vertical)
-    - spillage is approximated as purely horizontal, and straight on
+    * spillage is approximated as purely horizontal, and straight on
         * since receiver is cylinderical, it appears the same from
           all around, if you neglect vertical changes
-    - receiver length is assumed long enough to avoid vertical spillage
+    * receiver length is assumed long enough to avoid vertical spillage
 
-POWER
-    - parasitic loss (self-consumption) is not considered
-    - heat loss is not considered
+## POWER
+    * parasitic loss (self-consumption) is not considered
+    * heat loss is not considered
