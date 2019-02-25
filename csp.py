@@ -112,7 +112,7 @@ COST_STORAGE            = 25     #[$/kWh_thermal]
 
 #===============================================================================
 # Define the nominal conditions
-NOM_DAY         = 355       #[day]
+NOM_DAY         = 173#355       #[day]
 NOM_T_S         = 12        #[hr] (solar time)
 NOM_TEMP        = 294.55    #[K]
 NOM_HOUR        = 12.0      #[hr]   TODO: adjust for meridian difference
@@ -446,10 +446,10 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
         net_power_thermal += h.total_contribution
         row_contribution += h.total_contribution
 
-        # plot heliostat
-        ppx, ppy, ppz = zip(coordinate)
-        plt.scatter(ppx, ppy, color='c', marker='s', s=5)
-        plt.show(block=False)
+        # # plot heliostat
+        # ppx, ppy, ppz = zip(coordinate)
+        # plt.scatter(ppx, ppy, color='c', marker='s', s=5)
+        # plt.show(block=False)
 
     # message to inform
     net_thermal_MW = net_power_thermal / 1000000
@@ -553,17 +553,27 @@ Concentric circles of heliostats
 
 #..................
 print("Placing all heliostats...")
-# place_layers_of_heliostats(r_max=500)#, row_margin=20.0)
-place_layers_of_heliostats()
+place_layers_of_heliostats(r_max=800)#, row_margin=20.0)
+# place_layers_of_heliostats()
 
 print("--------> Done!")
 print("          Placed {} heliostats".format(len(solar_field)))
 
+#-------------------------------------------------------------------------------
+# trim away the least efficient heliostats
+solar_field.sort(
+    key=lambda x: x.total_contribution, reverse=False
+)
+
+top_fraction = 0.7
+top_number = int(len(solar_field) * top_fraction)
+solar_field_best = solar_field[top_number::]
+
 #..................
-# plot heliostat position
-# for h in solar_field:
-#     ppx, ppy, ppz = zip(list(h.position))
-#     plt.scatter(ppx, ppy, color='c', marker='s', s=5)
+# plot best heliostat position
+for h in solar_field_best:
+    ppx, ppy, ppz = zip(list(h.position))
+    plt.scatter(ppx, ppy, color='c', marker='s', s=5)
 
 #..................
 # h1 = Heliostat(np.array((1000,-1000,0)))
@@ -583,22 +593,6 @@ plt.show(block=False)
 
 # (wait for press enter to close plot)
 input()
-
-#-------------------------------------------------------------------------------
-# set heliostat mirror angles (point to receiver)
-
-
-#-------------------------------------------------------------------------------
-# calculate total solar energy received
-
-
-#-------------------------------------------------------------------------------
-# apply efficiency losses
-
-
-#-------------------------------------------------------------------------------
-# compare to net power desired
-
 
 #-------------------------------------------------------------------------------
 # (final output)
