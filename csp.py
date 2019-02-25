@@ -566,9 +566,10 @@ print()
 #-------------------------------------------------------------------------------
 # trim away the least effective heliostats
 if OVERSIZE_FACTOR > 1:
-    print("......................................")
+    print(".........................................")
     print("Oversize factor = {}".format(OVERSIZE_FACTOR))
     print("...Trimming least effective heliostats...")
+    print("... ", end="")
 
     # sort list of heliostats (most to least contribution)
     solar_field.sort(key=lambda x: x.total_contribution, reverse=True)
@@ -581,6 +582,7 @@ if OVERSIZE_FACTOR > 1:
             net_power_thermal -= h.total_contribution
         else:
             print("--------> Done!")
+            print(".........................................")
             break
 
 
