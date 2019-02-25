@@ -80,20 +80,13 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 50                 #[MW]
-NET_POWER_KW            = NET_POWER_MW * 1000 #[kW]
-NET_POWER_W             = NET_POWER_KW * 1000 #[W]
-
+NET_POWER_MW            = 50 #[MW]
 STORAGE_HOURS           = 8 #[hrs]
 
 EFF_RECEIVER_THERMAL    = 0.88
 EFF_PB                  = 0.43
 EFF_GENERATOR           = 0.98
 
-NET_POWER_TH_W          = NET_POWER_W / ( EFF_RECEIVER_THERMAL
-                                        * EFF_PB
-                                        * EFF_GENERATOR )
-                        
 MIRROR_AREA             = 115  #[m2]
 MIRROR_AREA_TO_TOTAL    = 0.96 # (assumption)
 MIRROR_REFLECTIVITY     = 0.95
@@ -291,7 +284,7 @@ azimuth = sgn * abs( arccos(
                 ))
 
 # length of day
-N = (24/pi)*arccos( -1*tan(lat) * tan(declination) )
+HOURS_IN_DAY = (24/pi)*arccos( -1*tan(lat) * tan(declination) )
 
 # Convert solar unit vector to cartesian coordinates
 # TODO: Extend this to take into account times other than solar noon
@@ -306,7 +299,7 @@ print("    t_s:          {: } hour".format(t_s))
 print("    t_clk:        {: } hour".format(t_clk))
 print("    w:            {: 04.2f} deg".format(w))
 print("    n:            {: } (day of year)".format(n))
-print("    N:            {: 03.1f} hours (length of day)".format(N))
+print("    N:            {: 03.1f} hours (length of day)".format(HOURS_IN_DAY))
 print("    declination:  {: 04.2f} deg".format(np.degrees(declination)))
 print("    zenith:       {: 04.2f} deg".format(np.degrees(zenith)))
 print("    azimuth:      {: 04.2f} deg".format(np.degrees(azimuth)))
@@ -547,20 +540,12 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
         theta += d_theta
         net_power_thermal += h.total_contribution
         row_contribution  += h.total_contribution
-
-    # message to inform contribution of row
-    net_thermal_MW = net_power_thermal / 1000000
-    row_contribution_MW = row_contribution / 1000000
-    percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
-    print("--> Contribution of row: {:.1f} [MW]".format(row_contribution_MW))
-    print("--> NET POWER THERMAL: {:.1f} [MW]".format(net_thermal_MW), end=", ")
-    print(" ({:.2f} %)".format(percent_of_goal))
             
-    return heliostat_row, theta_0, d_theta
+    return heliostat_row, theta_0, d_theta, row_contribution
 
 
-def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
-    margin_min=None, margin_max=None, oversize=1.0):
+def place_solar_field(r_min=INNER_RADIUS, row_margin=None,
+    margin_min=None, margin_max=None, goal_power_thermal=None, oversize=1.0):
     """
     Places successive rows of heliostats, with a defined row_margin of spacing
     between each row.
@@ -574,6 +559,7 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
     return heliostat_rows_list [list] List of rows
     """
     global net_power_thermal
+    global NET_POWER_TH_W
 
     # stagger mirrors in each row
     theta_0 = 0
@@ -586,9 +572,11 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
         margin_min = Heliostat.width * 0.5
     if margin_max is None:
         margin_max = Heliostat.width * 3
+    if goal_power_thermal is None:
+        goal_power_thermal = NET_POWER_TH_W
 
     # oversize, so that least efficient heliostats can be removed afterwards
-    OVERSIZE_POWER_TH_W = NET_POWER_TH_W * oversize
+    OVERSIZE_POWER_TH_W = goal_power_thermal * oversize
     
     # calculate starting parameters
     r = r_min
@@ -615,16 +603,44 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
             theta_0 = d_theta / 2 if theta_0 == 0 else 0
 
         # place heliostat row
-        heliostat_row, theta_0, d_theta = \
+        heliostat_row, theta_0, d_theta, row_contribution = \
             place_row_of_heliostats(r, d_theta, theta_0=theta_0)
-        # stagger mirrors in the next row
-        theta_0 = d_theta / 2 if theta_0 == 0 else 0
 
-        # add row, and increase radius for the next row
+        # message to inform contribution of row
+        net_thermal_MW = net_power_thermal / 1000000
+        row_contribution_MW = row_contribution / 1000000
+        percent_of_goal = (net_power_thermal / goal_power_thermal) * 100
+        print("--> Contribution of row: {:.1f} [MW]".format(row_contribution_MW))
+        print("--> NET POWER THERMAL: {:.1f} [MW]".format(net_thermal_MW), end=", ")
+        print(" ({:.2f} %)".format(percent_of_goal))
+
+        # add row, stagger next row, and increase radius for the next row
         heliostat_rows_list.append(heliostat_row)
+        theta_0 = d_theta / 2 if theta_0 == 0 else 0
         r += row_margin
 
     return heliostat_rows_list
+
+
+#===============================================================================
+#---------------------------------- Storage ------------------------------------
+# calculate requirements if storage is included
+storage_capacity_raw_MW = NET_POWER_MW * STORAGE_HOURS
+
+# calculate thermal energy to be stored (for calculating cost)
+storage_capacity_MWH_th = storage_capacity_raw_MW / (EFF_PB * EFF_GENERATOR)
+storage_capacity_KWH_th = storage_capacity_MWH_th * 1000
+
+# calculate the MPP (Max Power Point) in the day required for storage,
+# given a certain number of hours per day
+# (NOTE: This is based on the area under half a sin curve = 2)
+MPP_for_storage_MW = storage_capacity_raw_MW * (pi/2) / HOURS_IN_DAY
+
+# calculate power requirements, depending on storage
+if STORAGE_HOURS:
+    NET_POWER_MW = MPP_for_storage_MW #[MW]
+NET_POWER_KW = NET_POWER_MW * 1000 #[kW]
+NET_POWER_W  = NET_POWER_KW * 1000 #[W]
 
 
 #===============================================================================
@@ -632,10 +648,12 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
 # Place concentric circles of heliostats, staggered in each successive row to
 # minimize blocking.
 #-------------------------------------------------------------------------------
+NET_POWER_TH_W = NET_POWER_W / ( EFF_RECEIVER_THERMAL
+                               * EFF_PB
+                               * EFF_GENERATOR )
 OVERSIZE_FACTOR = 1.5
 print("Placing all heliostats...")
-place_layers_of_heliostats(oversize=OVERSIZE_FACTOR)
-
+place_solar_field(goal_power_thermal=NET_POWER_TH_W, oversize=OVERSIZE_FACTOR) 
 print("--------> Done!")
 print("          Placed {} heliostats".format(len(solar_field)))
 print()
@@ -690,21 +708,12 @@ number_heliostats = len(solar_field)
 total_mirror_area = MIRROR_AREA * number_heliostats 
 
 
-#---------------------------------- Storage ------------------------------------
-# TODO: Include 8hr storage
-storage_capacity_MWH = ( NET_POWER_MW
-                       * EFF_PB
-                       * EFF_GENERATOR
-                       * STORAGE_HOURS )
-storage_capacity_KWH = storage_capacity_MWH * 1000
-
-
 #----------------------------------- Costs -------------------------------------
 # calculate costs
 total_heliostat_cost = COST_HELIOSTAT * total_mirror_area
 total_tower_cost     = COST_TOWER * TOWER_HEIGHT_TOTAL
 total_receiver_cost  = COST_RECEIVER * net_thermal_KW
-total_storage_cost   = COST_STORAGE * storage_capacity_KWH
+total_storage_cost   = COST_STORAGE * storage_capacity_KWH_th
 
 final_cost = ( total_heliostat_cost
              + total_tower_cost
@@ -759,8 +768,8 @@ print("    Tower Height           {:,.1f} [m]".format(TOWER_HEIGHT_TOTAL))
 print("    Receiver Height (mid)  {:,.1f} [m]".format(TOWER_HEIGHT_OPTICAL))
 print()
 print("STORAGE:")                 
-print("    (storage for {} hours of {} MWe)".format(STORAGE_HOURS, NET_POWER_MW))
-print("    Total Storage:         {:,.1f} [MWh]".format(storage_capacity_MWH))
+print("    ({} hours of {:,.1f} MWe)".format(STORAGE_HOURS, NET_POWER_MW))
+print("    Total Storage:         {:,.1f} [MWh_th]".format(storage_capacity_MWH_th))
 print()
 print("INVESTMENT COSTS:")
 print("    Total Tower Cost:     $ {:,.0f}".format(total_tower_cost))
