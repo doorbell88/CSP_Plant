@@ -80,30 +80,30 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 50 #[MW]
-STORAGE_HOURS           = 8 #[hrs]
+NET_POWER_MW            = 200     #[MW]
+STORAGE_HOURS           = 8       #[hrs]
 
 EFF_RECEIVER_THERMAL    = 0.88
 EFF_PB                  = 0.43
 EFF_GENERATOR           = 0.98
 
-MIRROR_AREA             = 115  #[m2]
-MIRROR_AREA_TO_TOTAL    = 0.96 # (assumption)
+MIRROR_AREA             = 115     #[m2]
+MIRROR_AREA_TO_TOTAL    = 0.96          ### (assumption)
 MIRROR_REFLECTIVITY     = 0.95
-MIRROR_CLEAN_FACTOR     = 0.95 # (assumption)
+MIRROR_CLEAN_FACTOR     = 0.95          ### (assumption)
                         
-TOWER_HEIGHT_TOTAL      = 250 #[m]
-TOWER_HEIGHT_OPTICAL    = 220 #[m]
+TOWER_HEIGHT_TOTAL      = 250     #[m]
+TOWER_HEIGHT_OPTICAL    = 220     #[m]
 
-RECEIVER_DIAMETER       = 10 #[m] # (assumption)
-RECEIVER_LENGTH         = 15 #[m] # (assumption)
+RECEIVER_DIAMETER       = 10      #[m]  ### (assumption)
+RECEIVER_LENGTH         = 15      #[m]  ### (assumption)
                         
-INNER_RADIUS            = 100 #[m]
+INNER_RADIUS            = 100     #[m]
                         
-COST_HELIOSTAT          = 140    #[$/m2]
-COST_RECEIVER           = 100    #[$/kW_thermal]
-COST_TOWER              = 170000 #[$/m]
-COST_STORAGE            = 25     #[$/kWh_thermal]
+COST_HELIOSTAT          = 140     #[$/m2]
+COST_RECEIVER           = 100     #[$/kW_thermal]
+COST_TOWER              = 170000  #[$/m]
+COST_STORAGE            = 25      #[$/kWh_thermal]
 
 
 #===============================================================================
