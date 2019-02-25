@@ -193,13 +193,91 @@ plt.show(block=False)
 
 
 #------------------------------ Solar parameters -------------------------------
+def equation_of_time(n):
+    """
+    Calculates the delta_EOT, and returns the result (in radians)
+
+    :param: n [int] Day number
+
+    return delta_EOT [float] Equation of Time [min]
+    """
+    # constants
+    A = 0.258
+    B = -7.416
+    C = -3.648
+    D = -9.228
+    
+    # calculate Equation of Time (EOT)
+    delta_EOT = ( A * cos((2*pi*(n-1))/365)
+                + B * sin((2*pi*(n-1))/365)
+                + C * cos((4*pi*(n-1))/365)
+                + D * sin((4*pi*(n-1))/365)
+                )
+
+    return delta_EOT
+
+def get_solar_time_from_clock_time(t_clk, n=None, meridian_std=None,
+    meridian_loc=None, delta_DST=None):
+    """
+    calculate solar time from clock time
+
+    :param: t_clk [float] Clock time [hrs]
+    :param: n     [int] Day number (default is the nominal day at set point)
+
+    return t_s [float] Solar time [hrs]
+    """
+    if n is None:
+        n = NOM_DAY
+    if meridian_std is None:
+        meridian_std = -1 * MERIDIAN    # (must be degrees West)
+    if meridian_loc is None:
+        meridian_loc = -1 * LONGITUDE   # (must be degrees West)
+    if delta_DST is None:
+        delta_DST = 0                   # (0 in winter, -1 in summer)
+
+    # calculate Equation of Time [min]
+    delta_EOT = equation_of_time(n)
+    # calculate solar time
+    t_s = t_clk + (meridian_std-meridian_loc)/15 + (delta_EOT/60) + delta_DST
+    return t_s
+
+def get_clock_time_from_solar_time(t_s, n=None, meridian_std=None,
+    meridian_loc=None, delta_DST=None):
+    """
+    calculate clock time from solar time
+
+    :param: t_s [float] Solar time [hrs]
+    :param: n   [int] Day number (default is the nominal day at set point)
+
+    return t_clk [float] Clock time [hrs]
+    """
+    if n is None:
+        n = NOM_DAY
+    if meridian_std is None:
+        meridian_std = -1 * MERIDIAN    # (must be degrees West)
+    if meridian_loc is None:
+        meridian_loc = -1 * LONGITUDE   # (must be degrees West)
+    if delta_DST is None:
+        delta_DST = 0                   # (0 in winter, -1 in summer)
+
+    # calculate Equation of Time [min]
+    delta_EOT = equation_of_time(n)
+    # calculate clock time
+    t_clk = t_s - (meridian_std-meridian_loc)/15 - (delta_EOT/60) - delta_DST
+    return t_clk
+
+# convert coordinate from degrees to radians
 lat = np.deg2rad(LATITUDE)
 lon = np.deg2rad(LONGITUDE)
 alt = np.deg2rad(ALTITUDE)
 
-t_s = NOM_T_S           # solar time
-n = NOM_DAY             # day of the year
-w = (pi/12)*(t_s - 12)  # hour angle
+# set point time
+t_s = NOM_T_S             # solar time
+n   = NOM_DAY             # day of the year
+w   = (pi/12)*(t_s - 12)  # hour angle
+
+# calculate clock time
+t_clk = get_clock_time_from_solar_time(t_s)
 
 # solar angles
 declination = arcsin( 0.39795 * cos(2*pi*(n-173)/365) )
@@ -226,6 +304,7 @@ v_S = np.array((0, sin(zenith), cos(zenith)))
 
 print("Solar parameters:")
 print("    t_s:          {: } hour".format(t_s))
+print("    t_clk:        {: } hour".format(t_clk))
 print("    w:            {: 04.2f} deg".format(w))
 print("    n:            {: } (day of year)".format(n))
 print("    N:            {: 03.1f} hours (length of day)".format(N))
