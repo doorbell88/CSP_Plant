@@ -16,6 +16,8 @@ arctan = np.arctan
 net_power_thermal = 0.0
 # global list for all heliostats in solar field
 solar_field = []
+# global variable to hold number of rows
+rows = 0
 
 print("============================================")
 
@@ -71,7 +73,8 @@ RECEIVER
     - receiver length is assumed long enough to avoid vertical spillage
 
 POWER
-    - (parasitic?) power used (ex: pumps) is not considered
+    - parasitic loss (self-consumption) is not considered
+    - heat loss is not considered
 """
 #===============================================================================
 # GIVEN PARAMETERS
@@ -318,7 +321,21 @@ class Heliostat(object):
 
     def determine_attenuation(self):
         # attenuation due to visibility in atmosphere
-        self.f_att = 1.0 - np.exp(-(3*self.dR) / NOM_VISIBILITY)
+        # self.f_att = 1.0 - np.exp(-(3*self.dR) / NOM_VISIBILITY)
+
+        # visibility loss coefficients
+        a0 = 0.679 / 100  #[-]
+        a1 = 10.46 / 100  #[-/km]
+        a2 = -1.70 / 100  #[-/km^2]
+        a3 = 0.0   / 100  #[-/km^3]
+
+        # attenuation using visibility coefficients
+        dR = self.dR / 1000
+        self.f_att = (   a0
+                       + a1 * (dR)
+                       + a2 * (dR**2)
+                       + a3 * (dR**3)
+                     )
 
     def determine_spillage(self):
         # convert solar angular spread to radians
@@ -395,7 +412,7 @@ class Heliostat(object):
         return self.total_contribution
             
 
-def place_row_of_heliostats(radius, margin=10.0):
+def place_row_of_heliostats(radius, theta_0=0, margin=10.0):
     """
     Places a single circle of heliostats, evenly distributed around the circle
     :param: radius [float] Radius to plot heliostats [m]
@@ -403,13 +420,13 @@ def place_row_of_heliostats(radius, margin=10.0):
     """
     global net_power_thermal
     global solar_field
+    global rows
 
     r = radius
     d_s = Heliostat.width + margin
 
-    # message to inform
-    print("  NET POWER THERMAL: {:.1f}".format(net_power_thermal))
-    print("  Placing radius:    {:.1f}".format(r))
+    print()
+    print("Placing row: {:>2},  Radius: {:.1f} m".format(rows, r))
 
     # make d_theta so it is equal all the way around
     d_theta = arcsin(d_s/r)
@@ -420,6 +437,8 @@ def place_row_of_heliostats(radius, margin=10.0):
     theta = 0.0
     coordinate_list = []
     heliostat_row = []
+    rows += 1
+    row_contribution = 0
     while theta < 2*pi:
         x_coord = r * cos(theta)
         y_coord = r * sin(theta)
@@ -432,16 +451,24 @@ def place_row_of_heliostats(radius, margin=10.0):
         solar_field.append(h)
         theta += d_theta
         net_power_thermal += h.total_contribution
+        row_contribution += h.total_contribution
 
-    # plot row
-    for h in heliostat_row:
-        ppx, ppy, ppz = zip(list(h.position))
+        # plot heliostat
+        ppx, ppy, ppz = zip(coordinate)
         plt.scatter(ppx, ppy, color='c', marker='s', s=5)
         plt.show(block=False)
-            
-    return heliostat_row
 
-def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=20.0):
+    # message to inform
+    net_thermal_MW = net_power_thermal / 1000000
+    row_contribution_MW = row_contribution / 1000000
+    percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
+    print("--> Contribution of row: {:.1f} [MW]".format(row_contribution_MW))
+    print("--> NET POWER THERMAL: {:.1f} [MW]".format(net_thermal_MW), end=", ")
+    print(" ({:.2f} %)".format(percent_of_goal))
+            
+    return heliostat_row, theta_0, d_theta
+
+def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None):
     """
     Places successive rows of heliostats, with a defined row_margin of spacing
     between each row
@@ -451,17 +478,32 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=20.0):
     """
     global net_power_thermal
 
+    # stagger mirrors in each row
+    theta_0 = 0
+    d_theta = 0
+
+    if row_margin is None:
+        row_margin = Heliostat.depth
+
     r = r_min
     heliostat_rows_list = []
     if r_max is not None:
         while r < r_max:
-            heliostat_row = place_row_of_heliostats(radius=r)
+            # place heliostat row
+            heliostat_row, theta_0, d_theta = \
+                place_row_of_heliostats(radius=r, theta_0=theta_0)
+            # stagger mirrors in the next row
+            theta_0 = d_theta / 2
             heliostat_rows_list.append(heliostat_row)
             r += row_margin
 
     else:
         while net_power_thermal < NET_POWER_TH_W:
-            heliostat_row = place_row_of_heliostats(radius=r)
+            # place heliostat row
+            heliostat_row, theta_0, d_theta = \
+                place_row_of_heliostats(radius=r, theta_0=theta_0)
+            # stagger mirrors in the next row
+            theta_0 = d_theta / 2
             heliostat_rows_list.append(heliostat_row)
             r += row_margin
 
@@ -473,20 +515,26 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=20.0):
 """
 Concentric circles of heliostats
 """
+#..................
 # heliostat_row = place_row_of_heliostats(radius=INNER_RADIUS)
+
+#..................
 print("Placing all heliostats...")
-place_layers_of_heliostats(r_max=500)
+place_layers_of_heliostats(row_margin=20.0)#r_max=500)
 
 print("--------> Done!")
 print("          Placed {} heliostats".format(len(solar_field)))
+
+#..................
 # plot heliostat position
 # for h in solar_field:
 #     ppx, ppy, ppz = zip(list(h.position))
 #     plt.scatter(ppx, ppy, color='c', marker='s', s=5)
 
+#..................
 # h1 = Heliostat(np.array((1000,-1000,0)))
-# h1.calculate_energy_contribution()
-
+# h1.calculate_energy_contribution(verbose=True)
+# 
 # number_of_heliostats = np.ceil(NET_POWER_W / h1.total_contribution)
 # print("Number of heliostats: {:,.0f}".format(number_of_heliostats))
 
@@ -494,6 +542,8 @@ print("          Placed {} heliostats".format(len(solar_field)))
 # ppx, ppy, ppz = zip(list(h1.position))
 # plt.scatter(ppx, ppy, color='c', marker='s', s=5)
 
+
+#..................
 # show plot
 plt.show(block=False)
 
