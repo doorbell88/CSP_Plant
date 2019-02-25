@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from operator import attrgetter
 
 # make some references to np functions, for ease of coding
 pi  = np.pi
@@ -83,6 +84,8 @@ NET_POWER_MW            = 20                 #[MW]
 NET_POWER_KW            = NET_POWER_MW * 1000 #[kW]
 NET_POWER_W             = NET_POWER_KW * 1000 #[W]
 
+STORAGE_HOURS           = 8 #[hrs]
+
 EFF_PB                  = 0.43
 EFF_RECEIVER_THERMAL    = 0.88
 EFF_GENERATOR           = 0.98
@@ -91,7 +94,7 @@ NET_POWER_TH_W          = NET_POWER_W / (EFF_PB
                                          * EFF_RECEIVER_THERMAL
                                          * EFF_GENERATOR)
                         
-MIRROR_AREA             = 115 #[m2]
+MIRROR_AREA             = 115  #[m2]
 MIRROR_AREA_TO_TOTAL    = 0.96 # (assumption)
 MIRROR_REFLECTIVITY     = 0.95
 MIRROR_CLEAN_FACTOR     = 0.95 # (assumption)
@@ -167,7 +170,7 @@ xyz1, xyz2, xyz3, xyz4, xyz5 = perimeter_xyz_points
 print()
 
 
-#-------------------------------- PLOT POINTS ----------------------------------
+#-------------------------- Plot Property Perimeter ----------------------------
 # create plot (turn on interactive mode)
 plt.ion()
 
@@ -465,6 +468,7 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
             
     return heliostat_row, theta_0, d_theta
 
+
 def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
     margin_min=None, margin_max=None, oversize=1.0):
     """
@@ -531,12 +535,10 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
     return heliostat_rows_list
 
 
-#-------------------------------------------------------------------------------
-# generate list of heliostats (coordinates)
-"""
-Concentric circles of heliostats, staggered in each successive row to minimize
-blocking
-"""
+#===============================================================================
+# Generate list of heliostats in the solar field.
+# Place concentric circles of heliostats, staggered in each successive row to
+# minimize blocking.
 #-------------------------------------------------------------------------------
 OVERSIZE_FACTOR = 1.5
 print("Placing all heliostats...")
@@ -563,34 +565,115 @@ if OVERSIZE_FACTOR > 1:
             solar_field.remove(h)
             net_power_thermal -= h.total_contribution
         else:
+            print("--------> Done!")
             break
 
-#..................
-# plot best heliostat position
+
+#-------------------------------------------------------------------------------
+# plot final list of heliostats
 for h in solar_field:
     ppx, ppy, ppz = zip(list(h.position))
     plt.scatter(ppx, ppy, color='c', marker='s', s=5)
 
+
+#===============================================================================
+#-------------------------------- Final Values ---------------------------------
 # calculate final values
+net_thermal_KW = net_power_thermal / 1000
 net_thermal_MW = net_power_thermal / 1000000
 percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
+net_power_electrical = ( net_power_thermal
+                         * EFF_PB
+                         * EFF_RECEIVER_THERMAL
+                         * EFF_GENERATOR )
+net_electrical_MW = net_power_electrical / 1000000
 
-# print info
-print("--------> Done!")
-print("          Placed {} heliostats".format(len(solar_field)))
-print("----------------------------------------------------")
-print("--> NET POWER THERMAL: {:.1f} [MW]".format(net_thermal_MW), end=", ")
+number_heliostats = len(solar_field)
+total_mirror_area = MIRROR_AREA * number_heliostats 
+
+
+#---------------------------------- Storage ------------------------------------
+# TODO: Include 8hr storage
+# storage_capacity_MWH = NET_POWER_MW * STORAGE_HOURS
+storage_capacity_MWH = 0
+storage_capacity_KWH = storage_capacity_MWH * 1000
+
+
+#----------------------------------- Costs -------------------------------------
+# calculate costs
+total_heliostat_cost = COST_HELIOSTAT * total_mirror_area
+total_tower_cost     = COST_TOWER * TOWER_HEIGHT_TOTAL
+total_receiver_cost  = COST_RECEIVER * net_thermal_KW
+total_storage_cost   = COST_STORAGE * storage_capacity_KWH
+
+final_cost = ( total_heliostat_cost
+             + total_tower_cost
+             + total_receiver_cost
+             + total_storage_cost )
+
+
+#--------------------------------- Land Area -----------------------------------
+# get major and minor axes (assume ellipse)
+coordinates = [h.position for h in solar_field]
+min_x = min(map(lambda c: c[0], coordinates))
+max_x = max(map(lambda c: c[0], coordinates))
+min_y = min(map(lambda c: c[1], coordinates))
+max_y = max(map(lambda c: c[1], coordinates))
+
+# calculate area of ellipse
+x_radius = (max_x - min_x) / 2
+y_radius = (max_x - min_x) / 2
+elliptical_area_m = pi * x_radius * y_radius
+
+# convert to square kilometers
+land_area_km2 = elliptical_area_m / 1000000
+
+
+#===============================================================================
+#-------------------------------------------------------------------------------
+# (final output)
+print()
+print("====================================================")
+print("                      SUMMARY                       ")
+print("====================================================")
+print("POWER OUTPUT:")
+print("    NET POWER Thermal:    {:.1f} [MW_th]".format(net_thermal_MW))
+print("    NET POWER Electrical: {:.1f} [MW_e]".format(net_electrical_MW), end=", ")
 print(" ({:.2f} %)".format(percent_of_goal))
+print()
+print("LAND AREA:")
+print("    (min_x: {: .2f} m)".format(min_x ))
+print("    (max_x: {: .2f} m)".format(max_x ))
+print("    (min_y: {: .2f} m)".format(min_y ))
+print("    (max_y: {: .2f} m)".format(max_y ))
+print("    (--> x_span:   {:.2f} m)".format(x_radius*2))
+print("    (--> y_span:   {:.2f} m)".format(y_radius*2))
+print("    Total Land Area:       {:,.2f} [km2]".format(land_area_km2))
+print()
+print("HELIOSTATS:")
+print("    Total: {} heliostats".format(number_heliostats))
+print("    Total Mirror Area:     {:,.1f} [m2]".format(total_mirror_area))
+print()
+print("TOWER:")                   
+print("    Tower Height           {:,.1f} [m]".format(TOWER_HEIGHT_TOTAL))
+print("    Receiver Height (mid)  {:,.1f} [m]".format(TOWER_HEIGHT_OPTICAL))
+print()
+print("STORAGE:")                 
+print("    Total Storage:         {:,.1f} [MWh]".format(storage_capacity_MWH))
+print()
+print("INVESTMENT COSTS:")
+print("    Total Tower Cost:     $ {:,.0f}".format(total_tower_cost))
+print("    Total Receiver Cost:  $ {:,.0f}".format(total_receiver_cost))
+print("    Total Helistat Cost:  $ {:,.0f}".format(total_heliostat_cost))
+print("    Total Storage Cost:   $ {:,.0f}".format(total_storage_cost))
+print("----------------------------------------------------")
+print("            FINAL COST:   ${:,.0f}".format(final_cost))
 print("----------------------------------------------------")
 print()
+
 
 #-------------------------------------------------------------------------------
 # show plot
 plt.show(block=False)
-
-# (wait for press enter to close plot)
+# (wait for user to press enter to close plot and exit)
 input()
-
-#-------------------------------------------------------------------------------
-# (final output)
-print()
