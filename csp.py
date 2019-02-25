@@ -44,7 +44,7 @@ print("============================================")
 #-------------------------------- ASSUMPTIONS ----------------------------------
 """
 NOMINAL CONDITIONS TO BE USED:
-    - solar noon on summer solstice     --> Day 255
+    - solar noon on vernal equinox      --> Day 80
                                         --> Hour 12:xx  *(correct for meridian)
     - highest measured I_b of the year  --> 1089 [W/m2]
     - highest temp of the year          --> 294.55 [K]
@@ -115,7 +115,7 @@ COST_STORAGE            = 25     #[$/kWh_thermal]
 
 #===============================================================================
 # Define the nominal conditions
-NOM_DAY         = 173#355       #[day]
+NOM_DAY         = 80        #[day]
 NOM_T_S         = 12        #[hr] (solar time)
 NOM_TEMP        = 294.55    #[K]
 NOM_HOUR        = 12.0      #[hr]   TODO: adjust for meridian difference
