@@ -86,12 +86,12 @@ NET_POWER_W             = NET_POWER_KW * 1000 #[W]
 
 STORAGE_HOURS           = 8 #[hrs]
 
-EFF_PB                  = 0.43
 EFF_RECEIVER_THERMAL    = 0.88
+EFF_PB                  = 0.43
 EFF_GENERATOR           = 0.98
 
-NET_POWER_TH_W          = NET_POWER_W / ( EFF_PB
-                                        * EFF_RECEIVER_THERMAL
+NET_POWER_TH_W          = NET_POWER_W / ( EFF_RECEIVER_THERMAL
+                                        * EFF_PB
                                         * EFF_GENERATOR )
                         
 MIRROR_AREA             = 115  #[m2]
@@ -211,8 +211,7 @@ def equation_of_time(n):
     delta_EOT = ( A * cos((2*pi*(n-1))/365)
                 + B * sin((2*pi*(n-1))/365)
                 + C * cos((4*pi*(n-1))/365)
-                + D * sin((4*pi*(n-1))/365)
-                )
+                + D * sin((4*pi*(n-1))/365) )
 
     return delta_EOT
 
@@ -660,16 +659,19 @@ if OVERSIZE_FACTOR > 1:
             solar_field.remove(h)
             net_power_thermal -= h.total_contribution
         else:
-            print("--------> Done!")
-            print(".........................................")
             break
+    print("--------> Done!")
+    print(".........................................")
 
 
 #-------------------------------------------------------------------------------
 # plot final list of heliostats
+print()
+print("Plotting solar field...")
 for h in solar_field:
     ppx, ppy, ppz = zip(list(h.position))
     plt.scatter(ppx, ppy, color='c', marker='s', s=5)
+print("--> Done plotting solar field!")
 
 
 #===============================================================================
@@ -679,8 +681,8 @@ net_thermal_KW = net_power_thermal / 1000
 net_thermal_MW = net_power_thermal / 1000000
 percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
 net_power_electrical = ( net_power_thermal
-                       * EFF_PB
                        * EFF_RECEIVER_THERMAL
+                       * EFF_PB
                        * EFF_GENERATOR )
 net_electrical_MW = net_power_electrical / 1000000
 
@@ -720,7 +722,7 @@ max_y = max(map(lambda c: c[1], coordinates))
 
 # calculate area of ellipse
 x_radius = (max_x - min_x) / 2
-y_radius = (max_x - min_x) / 2
+y_radius = (max_y - min_y) / 2
 elliptical_area_m = pi * x_radius * y_radius
 
 # convert to square kilometers
@@ -757,6 +759,7 @@ print("    Tower Height           {:,.1f} [m]".format(TOWER_HEIGHT_TOTAL))
 print("    Receiver Height (mid)  {:,.1f} [m]".format(TOWER_HEIGHT_OPTICAL))
 print()
 print("STORAGE:")                 
+print("    (storage for {} hours of {} MWe)".format(STORAGE_HOURS, NET_POWER_MW))
 print("    Total Storage:         {:,.1f} [MWh]".format(storage_capacity_MWH))
 print()
 print("INVESTMENT COSTS:")
