@@ -412,7 +412,8 @@ class Heliostat(object):
         return self.total_contribution
             
 
-def place_row_of_heliostats(radius, theta_0=0, margin=10.0):
+# def place_row_of_heliostats(radius, theta_0=0, margin=10.0):
+def place_row_of_heliostats(radius, d_theta, theta_0=0):
     """
     Places a single circle of heliostats, evenly distributed around the circle
     :param: radius [float] Radius to plot heliostats [m]
@@ -422,26 +423,18 @@ def place_row_of_heliostats(radius, theta_0=0, margin=10.0):
     global solar_field
     global rows
 
-    r = radius
-    d_s = Heliostat.width + margin
-
     print()
-    print("Placing row: {:>2},  Radius: {:.1f} m".format(rows, r))
-
-    # make d_theta so it is equal all the way around
-    d_theta = arcsin(d_s/r)
-    number = np.floor((2*pi) / d_theta)
-    d_theta = (2*pi) / number 
+    print("Placing row: {:>2},  Radius: {:.1f} m".format(rows, radius))
 
     # generate list of coordinates, and instantiate heliostats
-    theta = 0.0
+    theta = theta_0
     coordinate_list = []
     heliostat_row = []
     rows += 1
     row_contribution = 0
     while theta < 2*pi:
-        x_coord = r * cos(theta)
-        y_coord = r * sin(theta)
+        x_coord = radius * cos(theta)
+        y_coord = radius * sin(theta)
         z_coord = 0.0
         coordinate = np.array((x_coord, y_coord, z_coord))
         coordinate_list.append(coordinate)
@@ -468,7 +461,8 @@ def place_row_of_heliostats(radius, theta_0=0, margin=10.0):
             
     return heliostat_row, theta_0, d_theta
 
-def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None):
+def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None,
+    margin_min=None, margin_max=None):
     """
     Places successive rows of heliostats, with a defined row_margin of spacing
     between each row
@@ -484,26 +478,65 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, r_max=None, row_margin=None):
 
     if row_margin is None:
         row_margin = Heliostat.depth
+    if margin_min is None:
+        margin_min = Heliostat.width * 0.5
+    if margin_max is None:
+        margin_max = Heliostat.width * 3
 
+    # calculate starting parameters
     r = r_min
+    margin = margin_min
+    d_s = Heliostat.width + margin
+    d_theta = arcsin(d_s/r)
+    number = np.floor((2*pi) / d_theta)
+    d_theta = (2*pi) / number 
+
     heliostat_rows_list = []
     if r_max is not None:
         while r < r_max:
+            # update the margin, to see if it's getting to high
+            margin = r * sin(d_theta)
+            if margin > margin_max:
+                # reset margin
+                margin = margin_min
+                d_s = Heliostat.width + margin
+                d_theta = arcsin(d_s/r)
+                # make d_theta so it is equal all the way around
+                number = np.floor((2*pi) / d_theta)
+                d_theta = (2*pi) / number 
+
             # place heliostat row
             heliostat_row, theta_0, d_theta = \
-                place_row_of_heliostats(radius=r, theta_0=theta_0)
+                place_row_of_heliostats(r, d_theta, theta_0=theta_0)
             # stagger mirrors in the next row
-            theta_0 = d_theta / 2
+            if theta_0 == 0:
+                theta_0 = d_theta / 2
+            else:
+                theta_0 = 0
             heliostat_rows_list.append(heliostat_row)
             r += row_margin
 
     else:
         while net_power_thermal < NET_POWER_TH_W:
+            # update the margin, to see if it's getting to high
+            margin = r * sin(d_theta)
+            if margin > margin_max:
+                # reset margin
+                margin = margin_min
+                d_s = Heliostat.width + margin
+                d_theta = arcsin(d_s/r)
+                # make d_theta so it is equal all the way around
+                number = np.floor((2*pi) / d_theta)
+                d_theta = (2*pi) / number 
+
             # place heliostat row
             heliostat_row, theta_0, d_theta = \
-                place_row_of_heliostats(radius=r, theta_0=theta_0)
+                place_row_of_heliostats(r, d_theta, theta_0=theta_0)
             # stagger mirrors in the next row
-            theta_0 = d_theta / 2
+            if theta_0 == 0:
+                theta_0 = d_theta / 2
+            else:
+                theta_0 = 0
             heliostat_rows_list.append(heliostat_row)
             r += row_margin
 
@@ -520,7 +553,8 @@ Concentric circles of heliostats
 
 #..................
 print("Placing all heliostats...")
-place_layers_of_heliostats(row_margin=20.0)#r_max=500)
+# place_layers_of_heliostats(r_max=500)#, row_margin=20.0)
+place_layers_of_heliostats()
 
 print("--------> Done!")
 print("          Placed {} heliostats".format(len(solar_field)))
