@@ -80,7 +80,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 20                 #[MW]
+NET_POWER_MW            = 50                 #[MW]
 NET_POWER_KW            = NET_POWER_MW * 1000 #[kW]
 NET_POWER_W             = NET_POWER_KW * 1000 #[W]
 
@@ -90,9 +90,9 @@ EFF_PB                  = 0.43
 EFF_RECEIVER_THERMAL    = 0.88
 EFF_GENERATOR           = 0.98
 
-NET_POWER_TH_W          = NET_POWER_W / (EFF_PB
-                                         * EFF_RECEIVER_THERMAL
-                                         * EFF_GENERATOR)
+NET_POWER_TH_W          = NET_POWER_W / ( EFF_PB
+                                        * EFF_RECEIVER_THERMAL
+                                        * EFF_GENERATOR )
                         
 MIRROR_AREA             = 115  #[m2]
 MIRROR_AREA_TO_TOTAL    = 0.96 # (assumption)
@@ -367,15 +367,18 @@ class Heliostat(object):
             self.f_spill = 0.0
 
     def calculate_energy_contribution(self, verbose=False):
-        # determine the heliostat's relevant parameters
         if verbose:
             print(".................................................")
             print("calculating heliostat parameters at position:")
             print("  ({},{},{}) [m]".format(*self.position), end="")
+
+        # calculate angle for aiming to receiver
         self.set_angle()
         if verbose:
             print("  --> dR = {:,.1f} [m]".format(self.dR))
             print(".................................................")
+
+        # calculate all efficiency parameters (losses)
         self.determine_cosine_effectiveness()
         self.determine_shadow_block()
         self.determine_attenuation()
@@ -394,6 +397,8 @@ class Heliostat(object):
             print("    f_att:           {: 04.3f}".format(self.f_att))
             print("    f_spill:         {: 04.3f}".format(self.f_spill))
             print("    _________________________")
+
+        # calculate total efficiency of heliostat
         total_efficiency = (
               Heliostat.reflectivity
             * Heliostat.clean_factor
@@ -527,15 +532,15 @@ def place_layers_of_heliostats(r_min=INNER_RADIUS, row_margin=None,
             # make d_theta so it is equal all the way around
             number = np.floor((2*pi) / d_theta)
             d_theta = (2*pi) / number 
+            # increase radius (a little) for next section, and stagger mirrors
+            r += row_margin / 2
+            theta_0 = d_theta / 2 if theta_0 == 0 else 0
 
         # place heliostat row
         heliostat_row, theta_0, d_theta = \
             place_row_of_heliostats(r, d_theta, theta_0=theta_0)
         # stagger mirrors in the next row
-        if theta_0 == 0:
-            theta_0 = d_theta / 2
-        else:
-            theta_0 = 0
+        theta_0 = d_theta / 2 if theta_0 == 0 else 0
 
         # add row, and increase radius for the next row
         heliostat_rows_list.append(heliostat_row)
@@ -559,11 +564,11 @@ print()
 
 
 #-------------------------------------------------------------------------------
-# trim away the least efficient heliostats
+# trim away the least effective heliostats
 if OVERSIZE_FACTOR > 1:
     print("......................................")
     print("Oversize factor = {}".format(OVERSIZE_FACTOR))
-    print("Trimming least effective heliostats...")
+    print("...Trimming least effective heliostats...")
 
     # sort list of heliostats (most to least contribution)
     solar_field.sort(key=lambda x: x.total_contribution, reverse=True)
@@ -593,9 +598,9 @@ net_thermal_KW = net_power_thermal / 1000
 net_thermal_MW = net_power_thermal / 1000000
 percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
 net_power_electrical = ( net_power_thermal
-                         * EFF_PB
-                         * EFF_RECEIVER_THERMAL
-                         * EFF_GENERATOR )
+                       * EFF_PB
+                       * EFF_RECEIVER_THERMAL
+                       * EFF_GENERATOR )
 net_electrical_MW = net_power_electrical / 1000000
 
 number_heliostats = len(solar_field)
@@ -604,8 +609,10 @@ total_mirror_area = MIRROR_AREA * number_heliostats
 
 #---------------------------------- Storage ------------------------------------
 # TODO: Include 8hr storage
-# storage_capacity_MWH = NET_POWER_MW * STORAGE_HOURS
-storage_capacity_MWH = 0
+storage_capacity_MWH = ( NET_POWER_MW
+                       * EFF_PB
+                       * EFF_GENERATOR
+                       * STORAGE_HOURS )
 storage_capacity_KWH = storage_capacity_MWH * 1000
 
 
@@ -661,7 +668,7 @@ print("    (--> y_span:   {:.2f} m)".format(y_radius*2))
 print("    Total Land Area:       {:,.2f} [km2]".format(land_area_km2))
 print()
 print("HELIOSTATS:")
-print("    Total: {} heliostats".format(number_heliostats))
+print("    Total Number:          {:,d} heliostats".format(number_heliostats))
 print("    Total Mirror Area:     {:,.1f} [m2]".format(total_mirror_area))
 print()
 print("TOWER:")                   
@@ -677,7 +684,7 @@ print("    Total Receiver Cost:  $ {:,.0f}".format(total_receiver_cost))
 print("    Total Helistat Cost:  $ {:,.0f}".format(total_heliostat_cost))
 print("    Total Storage Cost:   $ {:,.0f}".format(total_storage_cost))
 print("----------------------------------------------------")
-print("            FINAL COST:   ${:,.0f}".format(final_cost))
+print("            FINAL COST:   $ {:,.0f}".format(final_cost))
 print("----------------------------------------------------")
 print()
 
