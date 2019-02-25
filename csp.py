@@ -688,7 +688,7 @@ print()
 print("Plotting solar field...")
 for h in solar_field:
     ppx, ppy, ppz = zip(list(h.position))
-    plt.scatter(ppx, ppy, color='c', marker='s', s=5)
+    plt.scatter(ppx, ppy, color='c', marker='s', s=3)
 print("--> Done plotting solar field!")
 
 
