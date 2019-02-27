@@ -89,7 +89,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 200     #[MW]
+NET_POWER_MW            = 100     #[MW]
 STORAGE_HOURS           = 8       #[hrs]
 
 EFF_RECEIVER_THERMAL    = 0.88
@@ -647,7 +647,7 @@ MPP_for_storage_MW = storage_capacity_raw_MW * (pi/2) / HOURS_IN_DAY
 
 # calculate power requirements, depending on storage
 if STORAGE_HOURS:
-    NET_POWER_MW = MPP_for_storage_MW #[MW]
+    NET_POWER_MW += MPP_for_storage_MW #[MW]
 NET_POWER_KW = NET_POWER_MW * 1000 #[kW]
 NET_POWER_W  = NET_POWER_KW * 1000 #[W]
 
@@ -689,16 +689,6 @@ if OVERSIZE_FACTOR > 1:
             break
     print("--------> Done!")
     print(".........................................")
-
-
-#-------------------------------------------------------------------------------
-# plot final list of heliostats
-print()
-print("Plotting solar field...")
-for h in solar_field:
-    ppx, ppy, ppz = zip(list(h.position))
-    plt.scatter(ppx, ppy, color='c', marker='s', s=3)
-print("--> Done plotting solar field!")
 
 
 #===============================================================================
@@ -791,8 +781,17 @@ print("----------------------------------------------------")
 print()
 
 
-#-------------------------------------------------------------------------------
+#===============================================================================
+# plot final list of heliostats
+print()
+print("Plotting solar field...")
+for h in solar_field:
+    ppx, ppy, ppz = zip(list(h.position))
+    plt.scatter(ppx, ppy, color='c', marker='s', s=3)
+print("--> Done plotting solar field!")
+
 # show plot
 plt.show(block=False)
+
 # (wait for user to press enter to close plot and exit)
-input()
+input("Press ENTER to quit  >  ")
