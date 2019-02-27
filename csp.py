@@ -174,28 +174,6 @@ xyz1, xyz2, xyz3, xyz4, xyz5 = perimeter_xyz_points
 print()
 
 
-#-------------------------- Plot Property Perimeter ----------------------------
-# create plot (turn on interactive mode)
-plt.ion()
-
-# plot perimeter points
-pp = list(perimeter_xyz_points)
-pp.append(perimeter_xyz_points[0]) # append [0] element, so it draws full perimeter
-ppx, ppy, ppz = zip(*pp)
-plot = plt.scatter(ppx, ppy, color='k', marker='')
-
-# draw perimeter border
-plt.plot(ppx, ppy, 'k-', color='k', linewidth=1)
-
-# plot center point (tower position)
-ppx, ppy, ppz = [0], [0], [0]
-plt.scatter(ppx, ppy, color='r', marker='o', s=50)
-# plt.scatter([1000], [1000], color='g')
-
-# show plot
-plt.show(block=False)
-
-
 #------------------------------ Solar parameters -------------------------------
 def equation_of_time(n):
     """
@@ -773,10 +751,10 @@ print("    ({} hours of {:,.1f} MWe)".format(STORAGE_HOURS,STORAGE_POWER))
 print("    Total Storage:         {:,.1f} [MWh_th]".format(storage_capacity_MWH_th))
 print()
 print("INVESTMENT COSTS:")
-print("    Total Tower Cost:     $ {:,.0f}".format(total_tower_cost))
-print("    Total Receiver Cost:  $ {:,.0f}".format(total_receiver_cost))
-print("    Total Heliostat Cost: $ {:,.0f}".format(total_heliostat_cost))
-print("    Total Storage Cost:   $ {:,.0f}".format(total_storage_cost))
+print("    Total Tower Cost:      $ {:,.0f}".format(total_tower_cost))
+print("    Total Receiver Cost:   $ {:,.0f}".format(total_receiver_cost))
+print("    Total Heliostat Cost:  $ {:,.0f}".format(total_heliostat_cost))
+print("    Total Storage Cost:    $ {:,.0f}".format(total_storage_cost))
 print("----------------------------------------------------")
 print("            FINAL COST:   $ {:,.0f}".format(final_cost))
 print("----------------------------------------------------")
@@ -784,9 +762,31 @@ print()
 
 
 #===============================================================================
+# ask user if they want to plot the solar field
+make_plot = ''
+while make_plot.lower() not in ['y', 'n']:
+    make_plot = input("Would you like to generate the plot? (y/n)  > ")
+
 # plot final list of heliostats
-make_plot = input("Would you like to generate the plot? (y/n)  >  ")
 if make_plot.lower() == 'y':
+    #------------------------ Plot Property Perimeter --------------------------
+    # create plot (turn on interactive mode)
+    plt.ion()
+
+    # plot perimeter points
+    pp = list(perimeter_xyz_points)
+    pp.append(perimeter_xyz_points[0]) # (to connect endpoints)
+    ppx, ppy, ppz = zip(*pp)
+    plot = plt.scatter(ppx, ppy, color='k', marker='')
+
+    # draw perimeter border
+    plt.plot(ppx, ppy, 'k-', color='k', linewidth=1)
+
+    # plot center point (tower position)
+    ppx, ppy, ppz = [0], [0], [0]
+    plt.scatter(ppx, ppy, color='r', marker='o', s=50)
+
+    #---------------------------- Plot Solar Field -----------------------------
     print()
     print("Plotting solar field...")
     for h in solar_field:
@@ -799,4 +799,4 @@ if make_plot.lower() == 'y':
 
     # (wait for user to press enter to close plot and exit)
     print()
-    input("Press ENTER to quit  >  ")
+    input("Press ENTER to quit  > ")
