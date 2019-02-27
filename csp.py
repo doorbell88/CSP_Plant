@@ -762,6 +762,8 @@ print()
 
 
 #===============================================================================
+#                               Plot Solar Field
+#===============================================================================
 # ask user if they want to plot the solar field
 make_plot = ''
 while make_plot.lower() not in ['y', 'n']:
