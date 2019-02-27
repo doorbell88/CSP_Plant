@@ -90,7 +90,9 @@ POWER
 # GIVEN PARAMETERS
 
 NET_POWER_MW            = 100     #[MW]
+
 STORAGE_HOURS           = 8       #[hrs]
+STORAGE_POWER           = NET_POWER_MW #[MW]
 
 EFF_RECEIVER_THERMAL    = 0.88
 EFF_PB                  = 0.43
@@ -634,7 +636,7 @@ def place_solar_field(r_min=INNER_RADIUS, row_margin=None,
 #===============================================================================
 #---------------------------------- Storage ------------------------------------
 # calculate requirements if storage is included
-storage_capacity_raw_MW = NET_POWER_MW * STORAGE_HOURS
+storage_capacity_raw_MW = STORAGE_POWER * STORAGE_HOURS
 
 # calculate thermal energy to be stored (for calculating cost)
 storage_capacity_MWH_th = storage_capacity_raw_MW / (EFF_PB * EFF_GENERATOR)
@@ -767,7 +769,7 @@ print("    Tower Height           {:,.1f} [m]".format(TOWER_HEIGHT_TOTAL))
 print("    Receiver Height (mid)  {:,.1f} [m]".format(TOWER_HEIGHT_OPTICAL))
 print()
 print("STORAGE:")                 
-print("    ({} hours of {:,.1f} MWe)".format(STORAGE_HOURS, NET_POWER_MW))
+print("    ({} hours of {:,.1f} MWe)".format(STORAGE_HOURS,STORAGE_POWER))
 print("    Total Storage:         {:,.1f} [MWh_th]".format(storage_capacity_MWH_th))
 print()
 print("INVESTMENT COSTS:")
@@ -783,15 +785,18 @@ print()
 
 #===============================================================================
 # plot final list of heliostats
-print()
-print("Plotting solar field...")
-for h in solar_field:
-    ppx, ppy, ppz = zip(list(h.position))
-    plt.scatter(ppx, ppy, color='c', marker='s', s=3)
-print("--> Done plotting solar field!")
+make_plot = input("Would you like to generate the plot? (y/n)  >  ")
+if make_plot.lower() == 'y':
+    print()
+    print("Plotting solar field...")
+    for h in solar_field:
+        ppx, ppy, ppz = zip(list(h.position))
+        plt.scatter(ppx, ppy, color='c', marker='s', s=3)
+    print("--> Done plotting solar field!")
 
-# show plot
-plt.show(block=False)
+    # show plot
+    plt.show(block=False)
 
-# (wait for user to press enter to close plot and exit)
-input("Press ENTER to quit  >  ")
+    # (wait for user to press enter to close plot and exit)
+    print()
+    input("Press ENTER to quit  >  ")
