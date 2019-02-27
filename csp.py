@@ -44,17 +44,15 @@ print("============================================")
 #-------------------------------- ASSUMPTIONS ----------------------------------
 """
 NOMINAL CONDITIONS TO BE USED:
-    - solar noon on vernal equinox      --> Day 80, t_s = 12.0
+    - solar noon on autumnal equnox     --> Day 80, t_s = 12.0
     - highest measured I_b of the year  --> 1089 [W/m2]
-    - highest temp of the year          --> 294.55 [K]
-    - highest pressure of the year      --> 76.98 [kPa]
     - visibility loss coefficients used (taken from a lecture):
         a0 = 0.679 / 100  [-]
         a1 = 10.46 / 100  [-/km]
         a2 = -1.70 / 100  [-/km^2]
         a3 = 0.0   / 100  [-/km^3]
 
-GEOMETRY
+LAND AND TOPOGRAPHY
     - topography assumed perfectly flat
     - curvature of Earth is neglected in terms of altitude (z-axis) change
         --> only about 0.2m difference
@@ -66,7 +64,7 @@ GEOMETRY
 HELIOSTATS
     - mirror area / total area = 0.96
     - mirror clean factor = 0.95
-    - shadowing & blocking --> assumed to be 5%
+    - shadowing & blocking --> assumed to be 5% (combined)
     - mirrors are assumed flat (no focusing, therefore there is excess spillage)
 
 RECEIVER
@@ -365,7 +363,7 @@ class Heliostat(object):
         """Calculate angle to receiver, then surface normal vector"""
         # calculate vector to receiver
         self.vT = Heliostat.elevation_to_receiver - self.position
-        # dR = magnitude(self.vT)
+        # dR = magnitude(vT)
         self.dR = np.linalg.norm(self.vT)
         # convert to unit vector
         self.v_T = self.vT / self.dR
@@ -402,11 +400,10 @@ class Heliostat(object):
 
         # attenuation using visibility coefficients
         dR = self.dR / 1000
-        self.f_att = (   a0
-                       + a1 * (dR)
-                       + a2 * (dR**2)
-                       + a3 * (dR**3)
-                     )
+        self.f_att = ( a0
+                     + a1 * (dR)
+                     + a2 * (dR**2)
+                     + a3 * (dR**3) )
 
     def determine_spillage(self):
         # convert solar angular spread to radians
@@ -465,8 +462,8 @@ class Heliostat(object):
             * self.cosine_eff
             * (1.0 - self.f_shadow_block)
             * (1.0 - self.f_att)
-            * (1.0 - self.f_spill)
-        )
+            * (1.0 - self.f_spill) )
+ 
         if verbose:
             print("    TOTAL EFFICIENCY: {:04.1f} %".format(total_efficiency*100))
             print()
@@ -531,7 +528,6 @@ def place_row_of_heliostats(radius, d_theta, theta_0=0):
         row_contribution  += h.total_contribution
             
     return heliostat_row, theta_0, d_theta, row_contribution
-
 
 def place_solar_field(r_min=INNER_RADIUS, row_margin=None,
     margin_min=None, margin_max=None, goal_power_thermal=None, oversize=1.0):
@@ -599,8 +595,8 @@ def place_solar_field(r_min=INNER_RADIUS, row_margin=None,
         net_thermal_MW = net_power_thermal / 1000000
         row_contribution_MW = row_contribution / 1000000
         percent_of_goal = (net_power_thermal / goal_power_thermal) * 100
-        print("--> Contribution of row: {:.1f} [MW]".format(row_contribution_MW))
-        print("--> NET POWER THERMAL: {:.1f} [MW]".format(net_thermal_MW), end=", ")
+        print("    Contribution of row: {:.1f} [MW]".format(row_contribution_MW))
+        print("    NET POWER THERMAL: {:.1f} [MW]".format(net_thermal_MW), end=", ")
         print(" ({:.2f} %)".format(percent_of_goal))
 
         # add row, stagger next row, and increase radius for the next row
@@ -643,6 +639,8 @@ NET_POWER_TH_W = NET_POWER_W / ( EFF_RECEIVER_THERMAL
 OVERSIZE_FACTOR = 1.5
 print("Placing all heliostats...")
 place_solar_field(goal_power_thermal=NET_POWER_TH_W, oversize=OVERSIZE_FACTOR) 
+print()
+print("_________________________________________")
 print("--------> Done!")
 print("          Placed {} heliostats".format(len(solar_field)))
 print()
@@ -654,7 +652,7 @@ if OVERSIZE_FACTOR > 1:
     print(".........................................")
     print("Oversize factor = {}".format(OVERSIZE_FACTOR))
     print("...Trimming least effective heliostats...")
-    print("... ", end="")
+    print("...", end="")
 
     # sort list of heliostats (most to least contribution)
     solar_field.sort(key=lambda x: x.total_contribution, reverse=True)
@@ -667,7 +665,7 @@ if OVERSIZE_FACTOR > 1:
             net_power_thermal -= h.total_contribution
         else:
             break
-    print("--------> Done!")
+    print("Done!")
     print(".........................................")
 
 
@@ -784,20 +782,22 @@ if make_plot.lower() == 'y':
     # draw perimeter border
     plt.plot(ppx, ppy, 'k-', color='k', linewidth=1)
 
+    #---------------------------- Plot Solar Field -----------------------------
+    print()
+    print("Plotting solar field...")
+
     # plot center point (tower position)
     ppx, ppy, ppz = [0], [0], [0]
     plt.scatter(ppx, ppy, color='r', marker='o', s=50)
 
-    #---------------------------- Plot Solar Field -----------------------------
-    print()
-    print("Plotting solar field...")
+    # plot all heliostats
     for h in solar_field:
         ppx, ppy, ppz = zip(list(h.position))
         plt.scatter(ppx, ppy, color='c', marker='s', s=3)
-    print("--> Done plotting solar field!")
 
     # show plot
     plt.show(block=False)
+    print("--> Done plotting solar field!")
 
     # (wait for user to press enter to close plot and exit)
     print()
