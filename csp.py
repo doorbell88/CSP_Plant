@@ -87,7 +87,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 100     #[MW]
+NET_POWER_MW            = 20     #[MW]
 
 STORAGE_HOURS           = 8       #[hrs]
 STORAGE_POWER           = NET_POWER_MW #[MW]
@@ -794,6 +794,9 @@ if make_plot.lower() == 'y':
     for h in solar_field:
         ppx, ppy, ppz = zip(list(h.position))
         plt.scatter(ppx, ppy, color='c', marker='s', s=3)
+
+    # set aspect ratio to be equal
+    plt.axes().set_aspect('equal')
 
     # show plot
     plt.show(block=False)
