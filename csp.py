@@ -90,7 +90,7 @@ POWER
 NET_POWER_MW            = 20     #[MW]
 
 STORAGE_HOURS           = 8       #[hrs]
-STORAGE_POWER           = NET_POWER_MW #[MW]
+STORAGE_POWER_MW        = NET_POWER_MW #[MW]
 
 EFF_RECEIVER_THERMAL    = 0.88
 EFF_PB                  = 0.43
@@ -544,7 +544,7 @@ def place_solar_field(r_min=INNER_RADIUS, row_margin=None,
     return heliostat_rows_list [list] List of rows
     """
     global net_power_thermal
-    global NET_POWER_TH_W
+    global REQUIRED_PWR_TH_W
 
     # stagger mirrors in each row
     theta_0 = 0
@@ -558,7 +558,7 @@ def place_solar_field(r_min=INNER_RADIUS, row_margin=None,
     if margin_max is None:
         margin_max = Heliostat.width * 3
     if goal_power_thermal is None:
-        goal_power_thermal = NET_POWER_TH_W
+        goal_power_thermal = REQUIRED_PWR_TH_W
 
     # oversize, so that least efficient heliostats can be removed afterwards
     OVERSIZE_POWER_TH_W = goal_power_thermal * oversize
@@ -610,22 +610,22 @@ def place_solar_field(r_min=INNER_RADIUS, row_margin=None,
 #===============================================================================
 #---------------------------------- Storage ------------------------------------
 # calculate requirements if storage is included
-storage_capacity_raw_MW = STORAGE_POWER * STORAGE_HOURS
+storage_capacity_raw_MWh = STORAGE_POWER_MW * STORAGE_HOURS
 
 # calculate thermal energy to be stored (for calculating cost)
-storage_capacity_MWH_th = storage_capacity_raw_MW / (EFF_PB * EFF_GENERATOR)
-storage_capacity_KWH_th = storage_capacity_MWH_th * 1000
+storage_capacity_MWh_th = storage_capacity_raw_MWh / (EFF_PB * EFF_GENERATOR)
+storage_capacity_KWh_th = storage_capacity_MWh_th * 1000
 
 # calculate the MPP (Max Power Point) in the day required for storage,
 # given a certain number of hours per day
 # (NOTE: This is based on the area under half a sin curve = 2)
-MPP_for_storage_MW = storage_capacity_raw_MW * (pi/2) / HOURS_IN_DAY
+MPP_for_storage_MW = storage_capacity_raw_MWh * (pi/2) / HOURS_IN_DAY
 
 # calculate power requirements, depending on storage
+REQUIRED_PWR_MW = NET_POWER_MW
 if STORAGE_HOURS:
-    NET_POWER_MW += MPP_for_storage_MW #[MW]
-NET_POWER_KW = NET_POWER_MW * 1000 #[kW]
-NET_POWER_W  = NET_POWER_KW * 1000 #[W]
+    REQUIRED_PWR_MW += MPP_for_storage_MW #[MW]
+REQUIRED_PWR_W  = REQUIRED_PWR_MW * 1000000
 
 
 #===============================================================================
@@ -633,12 +633,12 @@ NET_POWER_W  = NET_POWER_KW * 1000 #[W]
 # Place concentric circles of heliostats, staggered in each successive row to
 # minimize blocking.
 #-------------------------------------------------------------------------------
-NET_POWER_TH_W = NET_POWER_W / ( EFF_RECEIVER_THERMAL
-                               * EFF_PB
-                               * EFF_GENERATOR )
+REQUIRED_PWR_TH_W = REQUIRED_PWR_W / ( EFF_RECEIVER_THERMAL
+                                     * EFF_PB
+                                     * EFF_GENERATOR )
 OVERSIZE_FACTOR = 1.5
 print("Placing all heliostats...")
-place_solar_field(goal_power_thermal=NET_POWER_TH_W, oversize=OVERSIZE_FACTOR) 
+place_solar_field(goal_power_thermal=REQUIRED_PWR_TH_W, oversize=OVERSIZE_FACTOR) 
 print()
 print("_________________________________________")
 print("--------> Done!")
@@ -658,9 +658,9 @@ if OVERSIZE_FACTOR > 1:
     solar_field.sort(key=lambda x: x.total_contribution, reverse=True)
 
     # remove heliostats from list, and subtract their thermal energy contribution
-    while net_power_thermal > NET_POWER_TH_W:
+    while net_power_thermal > REQUIRED_PWR_TH_W:
         h = solar_field[-1]
-        if net_power_thermal - h.total_contribution > NET_POWER_TH_W:
+        if net_power_thermal - h.total_contribution > REQUIRED_PWR_TH_W:
             solar_field.remove(h)
             net_power_thermal -= h.total_contribution
         else:
@@ -674,13 +674,23 @@ if OVERSIZE_FACTOR > 1:
 # calculate final values
 net_thermal_KW = net_power_thermal / 1000
 net_thermal_MW = net_power_thermal / 1000000
-percent_of_goal = (net_power_thermal / NET_POWER_TH_W) * 100
-net_power_electrical = ( net_power_thermal
-                       * EFF_RECEIVER_THERMAL
-                       * EFF_PB
-                       * EFF_GENERATOR )
-net_electrical_MW = net_power_electrical / 1000000
+percent_of_goal = (net_power_thermal / REQUIRED_PWR_TH_W) * 100
 
+# calculate net power able to be delivered (after efficiency losses)
+net_power_deliverable_W  = ( net_power_thermal
+                           * EFF_RECEIVER_THERMAL
+                           * EFF_PB
+                           * EFF_GENERATOR )
+
+# calculate share of energy going into storage
+storage_power_thermal_MW = MPP_for_storage_MW
+storage_power_thermal_W  = storage_power_thermal_MW * 1000000
+
+# calculate electrical generation output (after storage)
+net_power_electrical_W = net_power_deliverable_W - storage_power_thermal_W
+net_electrical_MW = net_power_electrical_W / 1000000
+
+# calculate land use and heliostat area
 number_heliostats = len(solar_field)
 total_mirror_area = MIRROR_AREA * number_heliostats 
 
@@ -690,7 +700,7 @@ total_mirror_area = MIRROR_AREA * number_heliostats
 total_heliostat_cost = COST_HELIOSTAT * total_mirror_area
 total_tower_cost     = COST_TOWER * TOWER_HEIGHT_TOTAL
 total_receiver_cost  = COST_RECEIVER * net_thermal_KW
-total_storage_cost   = COST_STORAGE * storage_capacity_KWH_th
+total_storage_cost   = COST_STORAGE * storage_capacity_KWh_th
 
 final_cost = ( total_heliostat_cost
              + total_tower_cost
@@ -722,10 +732,15 @@ print()
 print("====================================================")
 print("                      SUMMARY                       ")
 print("====================================================")
-print("POWER OUTPUT:")
-print("    NET POWER Thermal:    {:.1f} [MW_th]".format(net_thermal_MW))
-print("    NET POWER Electrical: {:.1f} [MW_e]".format(net_electrical_MW), end=", ")
+print("POWER:")
+print("    Raw Energy Collected: {:.1f} [MW_th]".format(net_thermal_MW))
+print("    (Stored Output):      {:.1f} [MW_e]".format(storage_power_thermal_MW))
+print("    Immediate Output:     {:.1f} [MW_e]".format(net_electrical_MW),end=", ")
 print(" ({:.2f} %)".format(percent_of_goal))
+print()
+print("STORAGE:")                 
+print("    ({} hours of {:,.1f} MWe)".format(STORAGE_HOURS,STORAGE_POWER_MW))
+print("    Total Storage:         {:,.1f} [MWh_th]".format(storage_capacity_MWh_th))
 print()
 print("LAND AREA:")
 print("    (min_x: {: .2f} m)".format(min_x ))
@@ -743,10 +758,6 @@ print()
 print("TOWER:")                   
 print("    Tower Height           {:,.1f} [m]".format(TOWER_HEIGHT_TOTAL))
 print("    Receiver Height (mid)  {:,.1f} [m]".format(TOWER_HEIGHT_OPTICAL))
-print()
-print("STORAGE:")                 
-print("    ({} hours of {:,.1f} MWe)".format(STORAGE_HOURS,STORAGE_POWER))
-print("    Total Storage:         {:,.1f} [MWh_th]".format(storage_capacity_MWH_th))
 print()
 print("INVESTMENT COSTS:")
 print("    Total Tower Cost:      $ {:,.0f}".format(total_tower_cost))
@@ -797,6 +808,12 @@ if make_plot.lower() == 'y':
 
     # set aspect ratio to be equal
     plt.axes().set_aspect('equal')
+    plt.xlabel('x')
+    plt.ylabel('y')
+
+    # define title
+    storage = "with" if STORAGE_HOURS else "no"
+    plt.title('CSP plant: {:,.0f}MW ({} storage)'.format(NET_POWER_MW, storage))
 
     # show plot
     plt.show(block=False)
