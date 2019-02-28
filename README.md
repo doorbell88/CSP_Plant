@@ -9,17 +9,15 @@ be set to any day of the year.)
 
 # ASSUMPTIONS
 ## NOMINAL CONDITIONS TO BE USED:
-    - solar noon on vernal equinox      --> Day 80, t_s = 12.0
+    - solar noon on autumnal equnox     --> Day 80, t_s = 12.0
     - highest measured I_b of the year  --> 1089 [W/m2]
-    - highest temp of the year          --> 294.55 [K]
-    - highest pressure of the year      --> 76.98 [kPa]
     - visibility loss coefficients used (taken from a lecture):
         a0 = 0.679 / 100  [-]
         a1 = 10.46 / 100  [-/km]
         a2 = -1.70 / 100  [-/km^2]
         a3 = 0.0   / 100  [-/km^3]
 
-## GEOMETRY
+## LAND AND TOPOGRAPHY
     - topography assumed perfectly flat
     - curvature of Earth is neglected in terms of altitude (z-axis) change
         --> only about 0.2m difference
@@ -31,7 +29,7 @@ be set to any day of the year.)
 ## HELIOSTATS
     - mirror area / total area = 0.96
     - mirror clean factor = 0.95
-    - shadowing & blocking --> assumed to be 5%
+    - shadowing & blocking --> assumed to be 5% (combined)
     - mirrors are assumed flat (no focusing, therefore there is excess spillage)
 
 ## RECEIVER
