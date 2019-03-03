@@ -9,7 +9,7 @@ be set to any day of the year.)
 
 # ASSUMPTIONS
 ## NOMINAL CONDITIONS TO BE USED:
-    - solar noon on autumnal equnox     --> Day 80, t_s = 12.0
+    - solar noon on autumnal equinox    --> Day 80, t_s = 12.0
     - highest measured I_b of the year  --> 1089 [W/m2]
     - visibility loss coefficients used (taken from a lecture):
         a0 = 0.679 / 100  [-]
