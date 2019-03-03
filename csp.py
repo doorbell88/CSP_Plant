@@ -87,7 +87,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 5     #[MW]
+NET_POWER_MW            = 50     #[MW]
 
 STORAGE_HOURS           = 0       #[hrs]
 STORAGE_POWER_MW        = NET_POWER_MW #[MW]
@@ -802,17 +802,24 @@ if make_plot.lower() == 'y':
     # plot all heliostats
     for h in solar_field:
         ppx, ppy, ppz = zip(list(h.position))
-        plt.plot(ppx, ppy, color='cyan', marker='s', markersize=3)
+        plt.plot(ppx, ppy, color='blue', marker='s', markersize=1)
 
     # plot all rejects
+    coordinates = [h.position for h in rejects]
+    min_rejects_x = min(map(lambda c: c[0], coordinates))
+    max_rejects_x = max(map(lambda c: c[0], coordinates))
+    min_rejects_y = min(map(lambda c: c[1], coordinates))
+    max_rejects_y = max(map(lambda c: c[1], coordinates))
     for h in rejects:
         ppx, ppy, ppz = zip(list(h.position))
-        plt.plot(ppx, ppy, color='gray', marker='s', markersize=2)
+        plt.plot(ppx, ppy, color='#BBBBBB', marker='s', markersize=1)
 
     # set aspect ratio to be equal
     plt.axes().set_aspect('equal')
     plt.xlabel('x')
     plt.ylabel('y')
+    plt.xlim(min_rejects_x-20, max_rejects_x+20)
+    plt.ylim(min_rejects_y-20, max_rejects_y+20)
 
     # define title
     storage = "with" if STORAGE_HOURS else "no"
