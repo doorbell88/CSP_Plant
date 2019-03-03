@@ -87,9 +87,9 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 20     #[MW]
+NET_POWER_MW            = 5     #[MW]
 
-STORAGE_HOURS           = 8       #[hrs]
+STORAGE_HOURS           = 0       #[hrs]
 STORAGE_POWER_MW        = NET_POWER_MW #[MW]
 
 EFF_RECEIVER_THERMAL    = 0.88
@@ -658,10 +658,11 @@ if OVERSIZE_FACTOR > 1:
     solar_field.sort(key=lambda x: x.total_contribution, reverse=True)
 
     # remove heliostats from list, and subtract their thermal energy contribution
+    rejects = []
     while net_power_thermal > REQUIRED_PWR_TH_W:
         h = solar_field[-1]
         if net_power_thermal - h.total_contribution > REQUIRED_PWR_TH_W:
-            solar_field.remove(h)
+            rejects.append(solar_field.pop())
             net_power_thermal -= h.total_contribution
         else:
             break
@@ -784,14 +785,11 @@ if make_plot.lower() == 'y':
     # create plot (turn on interactive mode)
     plt.ion()
 
-    # plot perimeter points
+    # draw perimeter border
     pp = list(perimeter_xyz_points)
     pp.append(perimeter_xyz_points[0]) # (to connect endpoints)
     ppx, ppy, ppz = zip(*pp)
-    plot = plt.scatter(ppx, ppy, color='k', marker='')
-
-    # draw perimeter border
-    plt.plot(ppx, ppy, 'k-', color='k', linewidth=1)
+    plt.plot(ppx, ppy, color='black', marker='', linestyle='-', linewidth=1)
 
     #---------------------------- Plot Solar Field -----------------------------
     print()
@@ -799,12 +797,17 @@ if make_plot.lower() == 'y':
 
     # plot center point (tower position)
     ppx, ppy, ppz = [0], [0], [0]
-    plt.scatter(ppx, ppy, color='r', marker='o', s=50)
+    plt.plot(ppx, ppy, color='red', marker='o', markersize=5)
 
     # plot all heliostats
     for h in solar_field:
         ppx, ppy, ppz = zip(list(h.position))
-        plt.scatter(ppx, ppy, color='c', marker='s', s=3)
+        plt.plot(ppx, ppy, color='cyan', marker='s', markersize=3)
+
+    # plot all rejects
+    for h in rejects:
+        ppx, ppy, ppz = zip(list(h.position))
+        plt.plot(ppx, ppy, color='gray', marker='s', markersize=2)
 
     # set aspect ratio to be equal
     plt.axes().set_aspect('equal')
