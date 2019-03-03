@@ -72,8 +72,8 @@ RECEIVER
     - receiver is cylindrical       --> Diameter = 10 [m] (horizontal)
                                     --> Length   = 15 [m] (vertical)
     - spillage is approximated as purely horizontal, and straight on
-        * since receiver is cylinderical, it appears the same from
-          all around, if you neglect vertical changes
+        * since receiver is cylindrical, it appears the same from all around, if
+          you neglect vertical changes
     - receiver length is assumed long enough to avoid vertical spillage
     - all receiver losses are assumed to be included the receiver efficiency
 
