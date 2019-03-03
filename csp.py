@@ -87,7 +87,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 50     #[MW]
+NET_POWER_MW            = 200     #[MW]
 
 STORAGE_HOURS           = 0       #[hrs]
 STORAGE_POWER_MW        = NET_POWER_MW #[MW]
@@ -804,22 +804,24 @@ if make_plot.lower() == 'y':
         ppx, ppy, ppz = zip(list(h.position))
         plt.plot(ppx, ppy, color='blue', marker='s', markersize=1)
 
+    #---------------------------------------------------------------------------
     # plot all rejects
     coordinates = [h.position for h in rejects]
-    min_rejects_x = min(map(lambda c: c[0], coordinates))
-    max_rejects_x = max(map(lambda c: c[0], coordinates))
-    min_rejects_y = min(map(lambda c: c[1], coordinates))
-    max_rejects_y = max(map(lambda c: c[1], coordinates))
-    for h in rejects:
-        ppx, ppy, ppz = zip(list(h.position))
-        plt.plot(ppx, ppy, color='#BBBBBB', marker='s', markersize=1)
+    min_x = min(map(lambda c: c[0], coordinates))
+    max_x = max(map(lambda c: c[0], coordinates))
+    min_y = min(map(lambda c: c[1], coordinates))
+    max_y = max(map(lambda c: c[1], coordinates))
+    h in rejects:
+    ppx, ppy, ppz = zip(list(h.position))
+    plt.plot(ppx, ppy, color='#BBBBBB', marker='s', markersize=1)
+    #---------------------------------------------------------------------------
 
     # set aspect ratio to be equal
     plt.axes().set_aspect('equal')
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.xlim(min_rejects_x-20, max_rejects_x+20)
-    plt.ylim(min_rejects_y-20, max_rejects_y+20)
+    plt.xlim(min_x-20, max_x+20)
+    plt.ylim(min_y-20, max_y+20)
 
     # define title
     storage = "with" if STORAGE_HOURS else "no"
