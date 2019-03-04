@@ -328,7 +328,7 @@ class Heliostat(object):
     reflectivity = MIRROR_REFLECTIVITY
     clean_factor = MIRROR_CLEAN_FACTOR
     depth        = np.floor(np.sqrt(area))
-    width        = area / depth
+    width        = MIRROR_AREA / depth
     height       = width / 2    # gives some space between ground and mirror
                                 # since width is greater than depth
     elevation_to_receiver = np.array((0, 0, TOWER_HEIGHT_OPTICAL - height))
