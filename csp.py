@@ -21,12 +21,17 @@ solar_field = []
 rows = 0
 
 #---------------------------------- OPTIONS ------------------------------------
+OVERSIZE_FACTOR = 1.5       # if > 1, oversize solar field, then trim the worst
+
 PLOT_REJECTS    = False     # True  = plot the heliostats that were removed
                             # False = plot only the final solar field
+
 ZOOM_TO_SF      = True      # True  = zoom in to see only the solar field
                             # False = zoom to see entire property boundary
+
 COLOR_MAP       = True      # True  = add color map showing thermal contribution
                             # False = just plot heliostat positions
+
 COLOR_SEQEUENCE = 'plasma'  # viridis, plasma, spring, autumn, hot, summer
 #-------------------------------------------------------------------------------
 
@@ -646,7 +651,6 @@ REQUIRED_PWR_W  = REQUIRED_PWR_MW * 1000000
 REQUIRED_PWR_TH_W = REQUIRED_PWR_W / ( EFF_RECEIVER_THERMAL
                                      * EFF_PB
                                      * EFF_GENERATOR )
-OVERSIZE_FACTOR = 1.5
 print("Placing all heliostats...")
 place_solar_field(goal_power_thermal=REQUIRED_PWR_TH_W, oversize=OVERSIZE_FACTOR) 
 print()
