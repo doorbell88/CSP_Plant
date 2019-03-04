@@ -21,10 +21,12 @@ solar_field = []
 rows = 0
 
 #---------------------------------- OPTIONS ------------------------------------
-PLOT_REJECTS    = False    # True  = plot the heliostats that were removed
-                           # False = plot only the final solar field
-ZOOM_TO_SF      = False    # True  = zoom in to see only the solar field
-                           # False = zoom to see entire property boundary
+PLOT_REJECTS    = True      # True  = plot the heliostats that were removed
+                            # False = plot only the final solar field
+ZOOM_TO_SF      = True      # True  = zoom in to see only the solar field
+                            # False = zoom to see entire property boundary
+COLOR_MAP       = True      # True  = add color map showing thermal contribution
+                            # False = just plot heliostat positions
 #-------------------------------------------------------------------------------
 
 print("============================================")
@@ -94,7 +96,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 20     #[MW]
+NET_POWER_MW            = 200     #[MW]
 
 STORAGE_HOURS           = 0       #[hrs]
 STORAGE_POWER_MW        = NET_POWER_MW #[MW]
@@ -718,11 +720,11 @@ final_cost = ( total_heliostat_cost
 
 #--------------------------------- Land Area -----------------------------------
 # get major and minor axes (assume ellipse)
-coordinates = [h.position for h in solar_field]
-min_x = min(map(lambda c: c[0], coordinates))
-max_x = max(map(lambda c: c[0], coordinates))
-min_y = min(map(lambda c: c[1], coordinates))
-max_y = max(map(lambda c: c[1], coordinates))
+sf_coordinates = [h.position for h in solar_field]
+min_x = min(map(lambda c: c[0], sf_coordinates))
+max_x = max(map(lambda c: c[0], sf_coordinates))
+min_y = min(map(lambda c: c[1], sf_coordinates))
+max_y = max(map(lambda c: c[1], sf_coordinates))
 
 # calculate area of ellipse
 x_radius = (max_x - min_x) / 2
@@ -788,6 +790,9 @@ while make_plot.lower() not in ['y', 'n']:
 
 # plot final list of heliostats
 if make_plot.lower() == 'y':
+    print()
+    print("Plotting solar field...")
+
     #------------------------ Plot Property Perimeter --------------------------
     # create plot (turn on interactive mode)
     plt.ion()
@@ -799,29 +804,36 @@ if make_plot.lower() == 'y':
     plt.plot(ppx, ppy, color='black', marker='', linestyle='-', linewidth=1)
 
     #---------------------------- Plot Solar Field -----------------------------
-    print()
-    print("Plotting solar field...")
-
     # plot center point (tower position)
     ppx, ppy, ppz = [0], [0], [0]
     plt.plot(ppx, ppy, color='red', marker='o', markersize=5)
 
+    # get lists of x and y coordinates
+    ppx = [h[0] for h in sf_coordinates]
+    ppy = [h[1] for h in sf_coordinates]
+
     # plot all heliostats
-    for h in solar_field:
-        ppx, ppy, ppz = zip(list(h.position))
-        plt.plot(ppx, ppy, color='blue', marker='s', markersize=1)
+    if COLOR_MAP:
+        # plot color map showing thermal contribution
+        thermal_scale = [h.total_contribution for h in solar_field]
+        plt.scatter(ppx, ppy, c=thermal_scale, cmap='viridis', marker='o', s=1)
+        plt.colorbar()
+    else:
+        plt.scatter(ppx, ppy, color='c', marker='s', s=1)
 
     #---------------------------- Plot All Rejects -----------------------------
     # plot all rejects
     if PLOT_REJECTS:
-        coordinates = [h.position for h in rejects]
-        min_x = min(map(lambda c: c[0], coordinates))
-        max_x = max(map(lambda c: c[0], coordinates))
-        min_y = min(map(lambda c: c[1], coordinates))
-        max_y = max(map(lambda c: c[1], coordinates))
-        for h in rejects:
-            ppx, ppy, ppz = zip(list(h.position))
-            plt.plot(ppx, ppy, color='#BBBBBB', marker='s', markersize=1)
+        rj_coordinates = [h.position for h in rejects]
+        min_x = min(map(lambda c: c[0], rj_coordinates))
+        max_x = max(map(lambda c: c[0], rj_coordinates))
+        min_y = min(map(lambda c: c[1], rj_coordinates))
+        max_y = max(map(lambda c: c[1], rj_coordinates))
+        # get lists of x and y coordinates
+        ppx = [h[0] for h in rj_coordinates]
+        ppy = [h[1] for h in rj_coordinates]
+        # plot
+        plt.scatter(ppx, ppy, color='#BBBBBB', marker='o', s=1)
 
     #===========================================================================
     #-------------------------- Set Plot Parameters ----------------------------
