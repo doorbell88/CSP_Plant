@@ -23,7 +23,7 @@ rows = 0
 #---------------------------------- OPTIONS ------------------------------------
 OVERSIZE_FACTOR = 1.5       # if > 1, oversize solar field, then trim the worst
 
-PLOT_REJECTS    = False     # True  = plot the heliostats that were removed
+PLOT_REJECTS    = True      # True  = plot the heliostats that were removed
                             # False = plot only the final solar field
 
 ZOOM_TO_SF      = True      # True  = zoom in to see only the solar field
@@ -61,7 +61,7 @@ print("============================================")
 NOMINAL CONDITIONS TO BE USED:
     - solar noon on autumnal equinox    --> Day 80, t_s = 12.0
     - highest measured I_b of the year  --> 1089 [W/m2]
-    - visibility loss coefficients used (taken from a lecture):
+    - visibility loss coefficients used:
         a0 = 0.679 / 100  [-]
         a1 = 10.46 / 100  [-/km]
         a2 = -1.70 / 100  [-/km^2]
