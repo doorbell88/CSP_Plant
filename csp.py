@@ -21,12 +21,13 @@ solar_field = []
 rows = 0
 
 #---------------------------------- OPTIONS ------------------------------------
-PLOT_REJECTS    = True      # True  = plot the heliostats that were removed
+PLOT_REJECTS    = False     # True  = plot the heliostats that were removed
                             # False = plot only the final solar field
 ZOOM_TO_SF      = True      # True  = zoom in to see only the solar field
                             # False = zoom to see entire property boundary
 COLOR_MAP       = True      # True  = add color map showing thermal contribution
                             # False = just plot heliostat positions
+COLOR_SEQEUENCE = 'plasma'  # viridis, plasma, spring, autumn, hot, summer
 #-------------------------------------------------------------------------------
 
 print("============================================")
@@ -816,7 +817,8 @@ if make_plot.lower() == 'y':
     if COLOR_MAP:
         # plot color map showing thermal contribution
         thermal_scale = [h.total_contribution/1000 for h in solar_field]
-        plt.scatter(ppx, ppy, c=thermal_scale, cmap='viridis', marker='o', s=1)
+        plt.scatter(ppx, ppy, marker='o', s=1,
+            c=thermal_scale, cmap=COLOR_SEQEUENCE)
         # configure colorbar
         cbar = plt.colorbar()
         cbar.ax.set_ylabel('Thermal Contribution [kW]', rotation=270)
