@@ -815,9 +815,12 @@ if make_plot.lower() == 'y':
     # plot all heliostats
     if COLOR_MAP:
         # plot color map showing thermal contribution
-        thermal_scale = [h.total_contribution for h in solar_field]
+        thermal_scale = [h.total_contribution/1000 for h in solar_field]
         plt.scatter(ppx, ppy, c=thermal_scale, cmap='viridis', marker='o', s=1)
-        plt.colorbar()
+        # configure colorbar
+        cbar = plt.colorbar()
+        cbar.ax.set_ylabel('Thermal Contribution [kW]', rotation=270)
+        cbar.ax.get_yaxis().labelpad = 15
     else:
         plt.scatter(ppx, ppy, color='c', marker='s', s=1)
 
