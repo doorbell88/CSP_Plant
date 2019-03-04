@@ -105,7 +105,7 @@ POWER
 NET_POWER_MW            = 0     #[MW]
 
 STORAGE_HOURS           = 8       #[hrs]
-STORAGE_POWER_MW        = 200 #[MW]
+STORAGE_POWER_MW        = 200     #[MW]
 
 EFF_RECEIVER_THERMAL    = 0.88
 EFF_PB                  = 0.43
