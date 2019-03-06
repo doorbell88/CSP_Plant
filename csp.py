@@ -23,13 +23,13 @@ rows = 0
 #---------------------------------- OPTIONS ------------------------------------
 OVERSIZE_FACTOR = 1.5       # if > 1, oversize solar field, then trim the worst
 
-PLOT_REJECTS    = True      # True  = plot the heliostats that were removed
+PLOT_REJECTS    = False     # True  = plot the heliostats that were removed
                             # False = plot only the final solar field
 
 ZOOM_TO_SF      = True      # True  = zoom in to see only the solar field
                             # False = zoom to see entire property boundary
 
-COLOR_MAP       = True      # True  = add color map showing thermal contribution
+COLOR_MAP       = False     # True  = add color map showing thermal contribution
                             # False = just plot heliostat positions
 
 COLOR_SEQEUENCE = 'plasma'  # viridis, plasma, spring, autumn, hot, summer
@@ -102,7 +102,7 @@ POWER
 #===============================================================================
 # GIVEN PARAMETERS
 
-NET_POWER_MW            = 0     #[MW]
+NET_POWER_MW            = 200     #[MW]
 
 STORAGE_HOURS           = 8       #[hrs]
 STORAGE_POWER_MW        = 200     #[MW]
